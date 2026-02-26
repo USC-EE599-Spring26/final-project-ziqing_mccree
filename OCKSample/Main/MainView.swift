@@ -10,7 +10,7 @@ import CareKitEssentials
 import CareKitStore
 import CareKitUI
 import SwiftUI
-
+// for test new branch
 struct MainView: View {
     @EnvironmentObject private var appDelegate: AppDelegate
     @StateObject private var loginViewModel = LoginViewModel()
