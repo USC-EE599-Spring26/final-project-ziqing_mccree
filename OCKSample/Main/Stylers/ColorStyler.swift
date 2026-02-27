@@ -14,17 +14,17 @@ struct ColorStyler: OCKColorStyler {
     #if os(iOS) || os(visionOS)
     /// Primary text color for labels.
     var label: UIColor {
-        UIColor(Color("BrandPurpleLight"))
+        UIColor(Color("UIPurple"))
     }
 
     /// Accent color used for less prominent text.
     var tertiaryLabel: UIColor {
-        UIColor(Color("BrandBlueLight"))
+        UIColor(Color("BrandPurpleLight"))
     }
 
     /// Global tint color used by CareKit controls.
     var tint: UIColor {
-        UIColor(Color("BrandPurpleLight"))
+        UIColor(Color("UIBlue"))
     }
 
     /// Background for grouped card-style views.

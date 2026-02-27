@@ -9,7 +9,11 @@ import CareKitUI
 import UIKit
 
 struct AnimationStyler: OCKAnimationStyler {
+    #if os(iOS)
 
+    var separatorHeight: CGFloat { 1.0 }
+
+    #endif
     // Faster, more responsive state change animations for cards and buttons.
     var stateChangeDuration: TimeInterval { 0.25 }
     var stateChangeDelay: TimeInterval { 0 }
