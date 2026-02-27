@@ -44,8 +44,8 @@ extension OCKStore {
 
     // Adds tasks and contacts into the store
     func populateDefaultCarePlansTasksContacts(
-		startDate: Date = Date()
-	) async throws {
+        startDate: Date = Date()
+    ) async throws {
 
         let thisMorning = Calendar.current.startOfDay(for: startDate)
         let aFewDaysAgo = Calendar.current.date(byAdding: .day, value: -4, to: thisMorning)!
@@ -75,6 +75,7 @@ extension OCKStore {
         )
         doxylamine.instructions = String(localized: "DOXYLAMINE_INSTRUCTIONS")
         doxylamine.asset = "pills.fill"
+        doxylamine.card = .button
 
         let nauseaSchedule = OCKSchedule(
             composing: [
@@ -98,6 +99,7 @@ extension OCKStore {
         nausea.impactsAdherence = false
         nausea.instructions = String(localized: "NAUSEA_INSTRUCTIONS")
         nausea.asset = "bed.double"
+        nausea.card = .grid
 
         let kegelElement = OCKScheduleElement(
             start: beforeBreakfast,
@@ -155,12 +157,12 @@ extension OCKStore {
         contact1.messagingNumbers = [OCKLabeledValue(label: CNLabelWork, value: "(800) 357-2040")]
         contact1.address = {
             let address = OCKPostalAddress(
-				street: "1500 San Pablo St",
-				city: "Los Angeles",
-				state: "CA",
-				postalCode: "90033",
-				country: "US"
-			)
+                street: "1500 San Pablo St",
+                city: "Los Angeles",
+                state: "CA",
+                postalCode: "90033",
+                country: "US"
+            )
             return address
         }()
 
@@ -175,13 +177,13 @@ extension OCKStore {
         contact2.phoneNumbers = [OCKLabeledValue(label: CNLabelWork, value: "(800) 257-1000")]
         contact2.messagingNumbers = [OCKLabeledValue(label: CNLabelWork, value: "(800) 257-1234")]
         contact2.address = {
-			let address = OCKPostalAddress(
-				street: "1500 San Pablo St",
-				city: "Los Angeles",
-				state: "CA",
-				postalCode: "90033",
-				country: "US"
-			)
+            let address = OCKPostalAddress(
+                street: "1500 San Pablo St",
+                city: "Los Angeles",
+                state: "CA",
+                postalCode: "90033",
+                country: "US"
+            )
             return address
         }()
 
