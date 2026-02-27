@@ -16,9 +16,9 @@ struct Styler: OCKStyler {
         DimensionStyle()
     }
     var animation: OCKAnimationStyler {
-        OCKAnimationStyle()
+        AnimationStyler()
     }
     var appearance: OCKAppearanceStyler {
-        OCKAppearanceStyle()
+        AppearanceStyler()
     }
 }
