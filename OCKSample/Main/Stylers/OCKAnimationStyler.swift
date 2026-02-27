@@ -1,5 +1,5 @@
 //
-//  AnimationStyler.swift
+//  OCKAnimationStyler.swift
 //  OCKSample
 //
 //  Created by ChatGPT on 2026/2/27.
@@ -21,4 +21,3 @@ struct AnimationStyler: OCKAnimationStyler {
     // Subtle highlight flash when a card is tapped.
     var selectionFlashDuration: TimeInterval { 0.15 }
 }
-

@@ -23,6 +23,16 @@
 		37DD2FC02F5167100022D84E /* OCKHealthKitTask+Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DD2FBF2F51670E0022D84E /* OCKHealthKitTask+Card.swift */; };
 		37DD2FC12F5167100022D84E /* OCKHealthKitTask+Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DD2FBF2F51670E0022D84E /* OCKHealthKitTask+Card.swift */; };
 		37DD2FC22F5167100022D84E /* OCKHealthKitTask+Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DD2FBF2F51670E0022D84E /* OCKHealthKitTask+Card.swift */; };
+		37E4505C2F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505A2F518BDB007AC644 /* OCKAnimationStyler.swift */; };
+		37E4505D2F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505B2F518BDB007AC644 /* OCKAppearanceStyler.swift */; };
+		37E4505E2F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505A2F518BDB007AC644 /* OCKAnimationStyler.swift */; };
+		37E4505F2F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505B2F518BDB007AC644 /* OCKAppearanceStyler.swift */; };
+		37E450602F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505A2F518BDB007AC644 /* OCKAnimationStyler.swift */; };
+		37E450612F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505B2F518BDB007AC644 /* OCKAppearanceStyler.swift */; };
+		37E450622F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505A2F518BDB007AC644 /* OCKAnimationStyler.swift */; };
+		37E450632F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505B2F518BDB007AC644 /* OCKAppearanceStyler.swift */; };
+		37E450642F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505A2F518BDB007AC644 /* OCKAnimationStyler.swift */; };
+		37E450652F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4505B2F518BDB007AC644 /* OCKAppearanceStyler.swift */; };
 		5173CB8A23C3A846007655A0 /* OCKSampleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5173CB8923C3A846007655A0 /* OCKSampleUITests.swift */; };
 		70077597252228E900EC0EDA /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70077596252228E900EC0EDA /* User.swift */; };
 		7007759B252229C900EC0EDA /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70077596252228E900EC0EDA /* User.swift */; };
@@ -233,6 +243,8 @@
 		37DD2FB52F5166350022D84E /* CareKitTaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareKitTaskViewModel.swift; sourceTree = "<group>"; };
 		37DD2FBB2F5166DB0022D84E /* OCKTask+Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OCKTask+Card.swift"; sourceTree = "<group>"; };
 		37DD2FBF2F51670E0022D84E /* OCKHealthKitTask+Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OCKHealthKitTask+Card.swift"; sourceTree = "<group>"; };
+		37E4505A2F518BDB007AC644 /* OCKAnimationStyler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCKAnimationStyler.swift; sourceTree = "<group>"; };
+		37E4505B2F518BDB007AC644 /* OCKAppearanceStyler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCKAppearanceStyler.swift; sourceTree = "<group>"; };
 		5173CB8723C3A846007655A0 /* OCKSampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OCKSampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5173CB8923C3A846007655A0 /* OCKSampleUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCKSampleUITests.swift; sourceTree = "<group>"; };
 		5173CB8B23C3A846007655A0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -584,6 +596,8 @@
 		91693819271B64CB00A634ED /* Stylers */ = {
 			isa = PBXGroup;
 			children = (
+				37E4505A2F518BDB007AC644 /* OCKAnimationStyler.swift */,
+				37E4505B2F518BDB007AC644 /* OCKAppearanceStyler.swift */,
 				37DD2FAD2F5165A90022D84E /* OCKDimensionStyle.swift */,
 				9169381C271B650700A634ED /* ColorStyler.swift */,
 				9169381A271B64E100A634ED /* Styler.swift */,
@@ -966,6 +980,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				5173CB8A23C3A846007655A0 /* OCKSampleUITests.swift in Sources */,
+				37E450642F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */,
+				37E450652F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -980,6 +996,8 @@
 				707D29492DCBE68500980253 /* MainView.swift in Sources */,
 				707D294A2DCBE68500980253 /* CustomStylerKey.swift in Sources */,
 				707D294B2DCBE68500980253 /* TipView.swift in Sources */,
+				37E4505C2F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */,
+				37E4505D2F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */,
 				707D29712DCBE6A000980253 /* OCKLocalization.swift in Sources */,
 				37DD2FBC2F5166E60022D84E /* OCKTask+Card.swift in Sources */,
 				707D294C2DCBE68500980253 /* StoreCoordinatorKey.swift in Sources */,
@@ -1029,6 +1047,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				37E450602F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */,
+				37E450612F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1043,6 +1063,8 @@
 				70A98D63278A268B009B58F2 /* ColorStyler.swift in Sources */,
 				918FDEB8271B49060045A0EF /* Logger.swift in Sources */,
 				37DD2FBD2F5166E60022D84E /* OCKTask+Card.swift in Sources */,
+				37E4505E2F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */,
+				37E4505F2F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */,
 				37DD2FAF2F5165AA0022D84E /* OCKDimensionStyle.swift in Sources */,
 				91AD923B24A4C42D00925D4D /* CareView.swift in Sources */,
 				70F921A927CA9A4000368CEC /* CustomStylerKey.swift in Sources */,
@@ -1111,6 +1133,8 @@
 				70F921B027CABED600368CEC /* LocalSyncSessionDelegate.swift in Sources */,
 				70221F2828D7809800971195 /* MainTabView.swift in Sources */,
 				70E3422F2DB06281005124F9 /* NoHighlightStyle.swift in Sources */,
+				37E450622F518BDB007AC644 /* OCKAnimationStyler.swift in Sources */,
+				37E450632F518BDB007AC644 /* OCKAppearanceStyler.swift in Sources */,
 				37DD2FAE2F5165AA0022D84E /* OCKDimensionStyle.swift in Sources */,
 				70CF66E428E1E74C00FAE977 /* TintColorFlipKey.swift in Sources */,
 				70F03AA327860AFF00E5AFB4 /* OCKPatient+Parse.swift in Sources */,
