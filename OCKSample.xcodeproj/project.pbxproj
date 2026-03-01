@@ -346,6 +346,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				918FDEAF271B3F8F0045A0EF /* ParseCareKit in Frameworks */,
+				70202EC7280733BC00CF73FB /* CareKit in Frameworks */,
 				708542F9276687F90029E888 /* HealthKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -835,6 +836,7 @@
 			name = OCKSample;
 			packageProductDependencies = (
 				918FDEAE271B3F8F0045A0EF /* ParseCareKit */,
+				70202EC6280733BC00CF73FB /* CareKit */,
 			);
 			productName = CareKitDemoApp;
 			productReference = E72B2C06226939E3009A9438 /* OCKSample.app */;
