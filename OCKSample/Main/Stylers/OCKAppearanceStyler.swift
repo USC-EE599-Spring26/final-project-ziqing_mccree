@@ -15,6 +15,12 @@ struct AppearanceStyler: OCKAppearanceStyler {
 
     #endif
 
+    // Implement all protocol properties locally to avoid linking CareKitUI extension defaults.
+    var lineWidth1: CGFloat { 1.0 }
+    var borderWidth1: CGFloat { 1.0 }
+    var borderWidth2: CGFloat { 2.0 }
+    var opacity1: CGFloat { 1.0 }
+
     // Softer, more rounded cards to match the login screen.
     var cornerRadius1: CGFloat { 16 }
     var cornerRadius2: CGFloat { 10 }
