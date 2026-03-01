@@ -37,6 +37,8 @@
 		70077597252228E900EC0EDA /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70077596252228E900EC0EDA /* User.swift */; };
 		7007759B252229C900EC0EDA /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70077596252228E900EC0EDA /* User.swift */; };
 		70202EC7280733BC00CF73FB /* CareKit in Frameworks */ = {isa = PBXBuildFile; productRef = 70202EC6280733BC00CF73FB /* CareKit */; };
+		70202ED1280733BC00CF73FB /* CareKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = 70202ED0280733BC00CF73FB /* CareKitUI */; };
+		70202ED3280733BC00CF73FB /* CareKitStore in Frameworks */ = {isa = PBXBuildFile; productRef = 70202ED2280733BC00CF73FB /* CareKitStore */; };
 		70221F2828D7809800971195 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70221F2728D7809800971195 /* MainTabView.swift */; };
 		70221F2A28D7BE0600971195 /* AppDelegate+ParseRemoteDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70221F2928D7BE0600971195 /* AppDelegate+ParseRemoteDelegate.swift */; };
 		70221F2F28D7CDE400971195 /* AppDelegate+ParseRemoteDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70221F2D28D7CD9200971195 /* AppDelegate+ParseRemoteDelegate.swift */; };
@@ -347,6 +349,8 @@
 			files = (
 				918FDEAF271B3F8F0045A0EF /* ParseCareKit in Frameworks */,
 				70202EC7280733BC00CF73FB /* CareKit in Frameworks */,
+				70202ED1280733BC00CF73FB /* CareKitUI in Frameworks */,
+				70202ED3280733BC00CF73FB /* CareKitStore in Frameworks */,
 				708542F9276687F90029E888 /* HealthKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -837,6 +841,8 @@
 			packageProductDependencies = (
 				918FDEAE271B3F8F0045A0EF /* ParseCareKit */,
 				70202EC6280733BC00CF73FB /* CareKit */,
+				70202ED0280733BC00CF73FB /* CareKitUI */,
+				70202ED2280733BC00CF73FB /* CareKitStore */,
 			);
 			productName = CareKitDemoApp;
 			productReference = E72B2C06226939E3009A9438 /* OCKSample.app */;
@@ -1763,6 +1769,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 70202EBF2807333900CF73FB /* XCRemoteSwiftPackageReference "CareKit" */;
 			productName = CareKit;
+		};
+		70202ED0280733BC00CF73FB /* CareKitUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 70202EBF2807333900CF73FB /* XCRemoteSwiftPackageReference "CareKit" */;
+			productName = CareKitUI;
+		};
+		70202ED2280733BC00CF73FB /* CareKitStore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 70202EBF2807333900CF73FB /* XCRemoteSwiftPackageReference "CareKit" */;
+			productName = CareKitStore;
 		};
 		707D292C2DCBE5E500980253 /* RealityKitContent */ = {
 			isa = XCSwiftPackageProductDependency;
