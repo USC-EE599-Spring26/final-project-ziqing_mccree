@@ -28,16 +28,17 @@ struct LoginView: View {
     @State var firstName: String = ""
     @State var lastName: String = ""
     @State var signupLoginSegmentValue = 0
+    @State var email: String = ""
 
     var body: some View {
         VStack {
             // Change the title to the name of your application
-            Text("APP_NAME")
+            Text("ALL4HEALTH")
                 .font(.largeTitle)
                 .foregroundColor(.white)
                 .padding()
             // Change this image to something that represents your application
-            Image("exercise.jpg")
+            Image("HealthLogo")
                 .resizable()
                 .frame(width: 150, height: 150, alignment: .center)
                 .clipShape(Circle())
@@ -73,6 +74,11 @@ struct LoginView: View {
 
                 switch signupLoginSegmentValue {
                 case 1:
+                    TextField("EMAIL", text: $email)
+                                            .padding()
+                                            .background(.white)
+                                            .cornerRadius(20.0)
+                                            .shadow(radius: 10.0, x: 20, y: 10)
                     TextField("GIVEN_NAME", text: $firstName)
                         .padding()
                         .background(.white)
@@ -103,7 +109,8 @@ struct LoginView: View {
                             username: usersname,
                             password: password,
                             firstName: firstName,
-                            lastName: lastName
+                            lastName: lastName,
+                            email: email
                         )
                     }
                 default:
@@ -166,8 +173,8 @@ struct LoginView: View {
             LinearGradient(
                 gradient: Gradient(
                     colors: [
-                        Color(tintColorFlip),
-                        Color.accentColor
+                        Color("BrandPurpleLight"),
+                        Color("BrandBlueLight")
                     ]
                 ),
                 startPoint: .top,
