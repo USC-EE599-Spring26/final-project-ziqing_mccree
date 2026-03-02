@@ -6,6 +6,7 @@
 //
 
 import CareKitUI
+import SwiftUI
 import UIKit
 
 struct AnimationStyler: OCKAnimationStyler {

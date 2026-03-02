@@ -7,6 +7,7 @@
 //
 
 import CareKitUI
+import SwiftUI
 import UIKit
 
 struct DimensionStyle: OCKDimensionStyler {
