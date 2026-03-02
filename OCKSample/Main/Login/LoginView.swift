@@ -99,19 +99,19 @@ struct LoginView: View {
                 case 1:
                     Task {
                         await viewModel.signup(
-							.patient,
-							username: usersname,
-							password: password,
-							firstName: firstName,
-							lastName: lastName
-						)
+                            .patient,
+                            username: usersname,
+                            password: password,
+                            firstName: firstName,
+                            lastName: lastName
+                        )
                     }
                 default:
                     Task {
                         await viewModel.login(
-							username: usersname,
-							password: password
-						)
+                            username: usersname,
+                            password: password
+                        )
                     }
                 }
             }, label: {
@@ -133,22 +133,25 @@ struct LoginView: View {
             .background(Color(.green))
             .cornerRadius(15)
 
-            Button(action: {
-                Task {
-                    await viewModel.loginAnonymously()
+            Button(
+                action: {
+                    Task {
+                        await viewModel.loginAnonymously()
+                    }
+                },
+                label: {
+                    switch signupLoginSegmentValue {
+                    case 0:
+                        Text("LOGIN_ANONYMOUSLY")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(width: 300)
+                    default:
+                        EmptyView()
+                    }
                 }
-            }, label: {
-                switch signupLoginSegmentValue {
-                case 0:
-                    Text("LOGIN_ANONYMOUSLY")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 300)
-                default:
-                    EmptyView()
-                }
-            })
+            )
             .background(Color(.lightGray))
             .cornerRadius(15)
 
@@ -165,7 +168,7 @@ struct LoginView: View {
                     colors: [
                         Color(tintColorFlip),
                         Color.accentColor
-					]
+                    ]
                 ),
                 startPoint: .top,
                 endPoint: .bottom
