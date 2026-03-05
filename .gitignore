@@ -18,7 +18,6 @@ DerivedData/
 *.perspectivev3
 !default.perspectivev3
 xcuserdata/
-OCKSample/Supporting Files/ParseCareKit.plist
 
 ## Other
 *.moved-aside
