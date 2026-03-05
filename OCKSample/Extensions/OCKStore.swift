@@ -75,6 +75,7 @@ extension OCKStore {
         )
         doxylamine.instructions = String(localized: "DOXYLAMINE_INSTRUCTIONS")
         doxylamine.asset = "pills.fill"
+        doxylamine.card = .button
 
         let nauseaSchedule = OCKSchedule(
             composing: [
@@ -98,6 +99,7 @@ extension OCKStore {
         nausea.impactsAdherence = false
         nausea.instructions = String(localized: "NAUSEA_INSTRUCTIONS")
         nausea.asset = "bed.double"
+        nausea.card = .grid
 
         let kegelElement = OCKScheduleElement(
             start: beforeBreakfast,
