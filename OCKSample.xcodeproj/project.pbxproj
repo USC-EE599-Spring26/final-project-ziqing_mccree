@@ -11,19 +11,18 @@
 		18BCABE02F59E5B40067AC75 /* AddTaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABDE2F59E5B30067AC75 /* AddTaskViewModel.swift */; };
 		18BCABE12F59E5B40067AC75 /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABDD2F59E5B30067AC75 /* AddTaskView.swift */; };
 		18BCABE22F59E5B40067AC75 /* AddTaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABDE2F59E5B30067AC75 /* AddTaskViewModel.swift */; };
-		18BCAC3F2F5A21030067AC75 /* ManageTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */; };
-		18BCAC402F5A21040067AC75 /* ManageTasksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */; };
-		18BCAC412F5A21050067AC75 /* ManageTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */; };
-		18BCAC422F5A21060067AC75 /* ManageTasksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */; };
 		18BCABE42F59E5E60067AC75 /* TaskCardType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABE32F59E5E60067AC75 /* TaskCardType.swift */; };
 		18BCABE52F59E5E60067AC75 /* TaskCardType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABE32F59E5E60067AC75 /* TaskCardType.swift */; };
-		18BCAC332F59F8520067AC75 /* CareViewController+Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC322F59F8520067AC75 /* CareViewController+Cards.swift */; };
 		18BCAC342F59F8520067AC75 /* CareViewController+Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC322F59F8520067AC75 /* CareViewController+Cards.swift */; };
 		18BCAC352F59F9490067AC75 /* OCKStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A962786098F00E5AFB4 /* OCKStore.swift */; };
 		18BCAC382F5A07F10067AC75 /* DailyTaskListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */; };
 		18BCAC392F5A07F10067AC75 /* DailyTaskListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */; };
 		18BCAC3B2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3A2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift */; };
 		18BCAC3C2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3A2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift */; };
+		18BCAC3F2F5A21030067AC75 /* ManageTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */; };
+		18BCAC402F5A21040067AC75 /* ManageTasksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */; };
+		18BCAC412F5A21050067AC75 /* ManageTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */; };
+		18BCAC422F5A21060067AC75 /* ManageTasksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */; };
 		37E450C62F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
 		37E450C72F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
 		37E450C82F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
@@ -251,12 +250,12 @@
 		0520468223C3C1F2004F0F36 /* OCKSample.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OCKSample.xctestplan; sourceTree = "<group>"; };
 		18BCABDD2F59E5B30067AC75 /* AddTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskView.swift; sourceTree = "<group>"; };
 		18BCABDE2F59E5B30067AC75 /* AddTaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskViewModel.swift; sourceTree = "<group>"; };
-		18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageTasksView.swift; sourceTree = "<group>"; };
-		18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageTasksViewModel.swift; sourceTree = "<group>"; };
 		18BCABE32F59E5E60067AC75 /* TaskCardType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCardType.swift; sourceTree = "<group>"; };
 		18BCAC322F59F8520067AC75 /* CareViewController+Cards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CareViewController+Cards.swift"; sourceTree = "<group>"; };
 		18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyTaskListViewController.swift; sourceTree = "<group>"; };
 		18BCAC3A2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CareViewController+TaskFiltering.swift"; sourceTree = "<group>"; };
+		18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageTasksView.swift; sourceTree = "<group>"; };
+		18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageTasksViewModel.swift; sourceTree = "<group>"; };
 		37E450C52F553C4F007AC644 /* CareKitCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareKitCard.swift; sourceTree = "<group>"; };
 		37E450C92F553CA9007AC644 /* OCKDimensionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCKDimensionStyle.swift; sourceTree = "<group>"; };
 		37E450CE2F553D89007AC644 /* CareKitTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareKitTaskView.swift; sourceTree = "<group>"; };
@@ -1053,7 +1052,6 @@
 				707D295C2DCBE68500980253 /* AppDelegate.swift in Sources */,
 				707D295D2DCBE68500980253 /* LoginViewModel.swift in Sources */,
 				37E450C72F553C5C007AC644 /* CareKitCard.swift in Sources */,
-				18BCAC332F59F8520067AC75 /* CareViewController+Cards.swift in Sources */,
 				70B8E0A62F0EC1CA00440FCA /* Mutex.swift in Sources */,
 				707D295E2DCBE68500980253 /* Utility.swift in Sources */,
 				707D295F2DCBE68500980253 /* OCKSampleApp.swift in Sources */,

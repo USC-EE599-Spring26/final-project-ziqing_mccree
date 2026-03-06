@@ -14,8 +14,6 @@ import SwiftUI
 import UIKit
 #endif
 
-// MARK: - Plain SwiftUI placeholder for labeledValue / link / featured (no CareKit generic views)
-
 private struct TaskCardPlaceholderView: View {
     let title: String
     let subtitle: String
@@ -66,7 +64,7 @@ extension CareViewController {
         taskQuery.taskIDs = [task.id]
 
         let cardType = task.card
-        #if canImport(UIKit)
+        #if canImport(UIKit) && canImport(CareKitUI)
         switch cardType {
         case .instruction:
             let viewController = OCKInstructionsTaskViewController(query: taskQuery, store: store)
@@ -108,7 +106,7 @@ extension CareViewController {
         let view = TaskCardPlaceholderView(
             title: task.title ?? "Task",
             subtitle: "Task",
-            assetName: nil
+            assetName: task.asset
         )
         return [UIHostingController(rootView: view)]
         #endif
@@ -117,7 +115,7 @@ extension CareViewController {
     func makeInstructionsFallbackCard(
         task: OCKTask
     ) -> [UIViewController] {
-        #if canImport(UIKit)
+        #if canImport(UIKit) && canImport(CareKitUI)
         let title = task.title ?? "Hypertension Self-Management"
 
         let label = UILabel()
@@ -137,11 +135,8 @@ extension CareViewController {
         return [viewController]
         #else
         let title = task.title ?? "Hypertension Self-Management"
-        let content = Text(title)
-            .padding()
-
-        let hosting = UIHostingController(rootView: content)
-        return [hosting]
+        let view = TaskCardPlaceholderView(title: title, subtitle: "", assetName: task.asset)
+        return [UIHostingController(rootView: view)]
         #endif
     }
 }
