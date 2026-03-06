@@ -17,7 +17,6 @@
 		18BCAC352F59F9490067AC75 /* OCKStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A962786098F00E5AFB4 /* OCKStore.swift */; };
 		18BCAC382F5A07F10067AC75 /* DailyTaskListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */; };
 		18BCAC392F5A07F10067AC75 /* DailyTaskListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */; };
-		18BCAC3B2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3A2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift */; };
 		18BCAC3C2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3A2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift */; };
 		18BCAC3F2F5A21030067AC75 /* ManageTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */; };
 		18BCAC402F5A21040067AC75 /* ManageTasksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */; };
@@ -1056,7 +1055,6 @@
 				707D295F2DCBE68500980253 /* OCKSampleApp.swift in Sources */,
 				707D29602DCBE68500980253 /* SessionDelegate.swift in Sources */,
 				707D29612DCBE68500980253 /* Styler.swift in Sources */,
-				18BCAC3B2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift in Sources */,
 				707D29622DCBE68500980253 /* ProfileViewModel.swift in Sources */,
 				707D29632DCBE68500980253 /* AppDelegate+UIApplicationDelegate.swift in Sources */,
 				707D29652DCBE68500980253 /* PCKUtility.swift in Sources */,
