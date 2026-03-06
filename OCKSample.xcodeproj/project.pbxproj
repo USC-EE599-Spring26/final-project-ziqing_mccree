@@ -88,7 +88,6 @@
 		707D294E2DCBE68500980253 /* OCKHealthKitPassthroughStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A942786093B00E5AFB4 /* OCKHealthKitPassthroughStore.swift */; };
 		707D294F2DCBE68500980253 /* OCKStore+SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707D28CE2DCA8AA500980253 /* OCKStore+SampleData.swift */; };
 		707D29502DCBE68500980253 /* TaskID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7099D20429E98DFF0037CD8E /* TaskID.swift */; };
-		707D29512DCBE68500980253 /* CareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7036E4C3256E0A48006E9A3C /* CareView.swift */; };
 		707D29522DCBE68500980253 /* AppDelegateKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F0EFE928C2EE6C0005B5A2 /* AppDelegateKey.swift */; };
 		707D29532DCBE68500980253 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 918FDEB6271B41FF0045A0EF /* Logger.swift */; };
 		707D29542DCBE68500980253 /* TintColorFlipKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70CF66E328E1E74C00FAE977 /* TintColorFlipKey.swift */; };
@@ -1033,7 +1032,6 @@
 				18BCAC422F5A21060067AC75 /* ManageTasksViewModel.swift in Sources */,
 				707D294F2DCBE68500980253 /* OCKStore+SampleData.swift in Sources */,
 				707D29502DCBE68500980253 /* TaskID.swift in Sources */,
-				707D29512DCBE68500980253 /* CareView.swift in Sources */,
 				707D29522DCBE68500980253 /* AppDelegateKey.swift in Sources */,
 				707D29532DCBE68500980253 /* Logger.swift in Sources */,
 				707D29542DCBE68500980253 /* TintColorFlipKey.swift in Sources */,
