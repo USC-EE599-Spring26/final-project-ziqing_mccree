@@ -138,9 +138,14 @@ class LoginViewModel: ObservableObject {
 			value: daysInThePastToGenerateSampleData,
 			to: currentDate
 		)! : currentDate
-        try await appDelegate.store.populateDefaultCarePlansTasksContacts(
+        /*try await appDelegate.store.populateDefaultCarePlansTasksContacts(
 			startDate: startDate
-		)
+		)*/
+        if appDelegate.store.name != Constants.noCareStoreName {
+            try await appDelegate.store.populateDefaultCarePlansTasksContacts(startDate: Date())
+        } else {
+            print("Skip populate because store is noCareStoreName")
+        }
         try await appDelegate.healthKitStore.populateDefaultHealthKitTasks(
 			startDate: startDate
 		)

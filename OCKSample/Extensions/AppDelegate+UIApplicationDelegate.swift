@@ -49,7 +49,10 @@ extension AppDelegate: UIApplicationDelegate {
                 // When syncing directly with watchOS, we do not care about login and need to setup remotes
                 do {
                     try await setupRemotes()
-                    try await store.populateDefaultCarePlansTasksContacts()
+                    /*try await store.populateDefaultCarePlansTasksContacts()*/
+                    if !isSyncingWithRemote {
+                        try await store.populateDefaultCarePlansTasksContacts()
+                    }
                     try await healthKitStore.populateDefaultHealthKitTasks()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         NotificationCenter.default.post(.init(name: Notification.Name(rawValue: Constants.requestSync)))
@@ -62,6 +65,10 @@ extension AppDelegate: UIApplicationDelegate {
                     """)
                 }
             }
+
+            #if DEBUG
+            await self.debugReseedIfNeeded()
+            #endif
         }
         return true
     }

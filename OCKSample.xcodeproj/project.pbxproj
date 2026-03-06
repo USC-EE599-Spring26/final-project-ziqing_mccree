@@ -7,6 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		18BCABDF2F59E5B40067AC75 /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABDD2F59E5B30067AC75 /* AddTaskView.swift */; };
+		18BCABE02F59E5B40067AC75 /* AddTaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABDE2F59E5B30067AC75 /* AddTaskViewModel.swift */; };
+		18BCABE12F59E5B40067AC75 /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABDD2F59E5B30067AC75 /* AddTaskView.swift */; };
+		18BCABE22F59E5B40067AC75 /* AddTaskViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABDE2F59E5B30067AC75 /* AddTaskViewModel.swift */; };
+		18BCABE42F59E5E60067AC75 /* TaskCardType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABE32F59E5E60067AC75 /* TaskCardType.swift */; };
+		18BCABE52F59E5E60067AC75 /* TaskCardType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCABE32F59E5E60067AC75 /* TaskCardType.swift */; };
+		18BCAC342F59F8520067AC75 /* CareViewController+Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC322F59F8520067AC75 /* CareViewController+Cards.swift */; };
+		18BCAC352F59F9490067AC75 /* OCKStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A962786098F00E5AFB4 /* OCKStore.swift */; };
+		18BCAC382F5A07F10067AC75 /* DailyTaskListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */; };
+		18BCAC392F5A07F10067AC75 /* DailyTaskListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */; };
+		18BCAC3C2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3A2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift */; };
+		18BCAC3F2F5A21030067AC75 /* ManageTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */; };
+		18BCAC402F5A21040067AC75 /* ManageTasksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */; };
+		18BCAC412F5A21050067AC75 /* ManageTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */; };
+		18BCAC422F5A21060067AC75 /* ManageTasksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */; };
 		37E450C62F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
 		37E450C72F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
 		37E450C82F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
@@ -62,10 +77,8 @@
 		707D28CF2DCA8AAB00980253 /* OCKStore+SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707D28CE2DCA8AA500980253 /* OCKStore+SampleData.swift */; };
 		707D28D02DCA8AAB00980253 /* OCKStore+SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707D28CE2DCA8AA500980253 /* OCKStore+SampleData.swift */; };
 		707D292D2DCBE5E500980253 /* RealityKitContent in Frameworks */ = {isa = PBXBuildFile; productRef = 707D292C2DCBE5E500980253 /* RealityKitContent */; };
-		707D29462DCBE68500980253 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70221F2728D7809800971195 /* MainTabView.swift */; };
 		707D29472DCBE68500980253 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70077596252228E900EC0EDA /* User.swift */; };
 		707D29482DCBE68500980253 /* FontColorKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03AA727860E7700E5AFB4 /* FontColorKey.swift */; };
-		707D29492DCBE68500980253 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7036E4D2256EBE35006E9A3C /* MainView.swift */; };
 		707D294A2DCBE68500980253 /* CustomStylerKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F921A727CA9A3A00368CEC /* CustomStylerKey.swift */; };
 		707D294B2DCBE68500980253 /* TipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C37848228F887800E982D8 /* TipView.swift */; };
 		707D294C2DCBE68500980253 /* StoreCoordinatorKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 918FDEC4271B4EA70045A0EF /* StoreCoordinatorKey.swift */; };
@@ -73,7 +86,6 @@
 		707D294E2DCBE68500980253 /* OCKHealthKitPassthroughStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A942786093B00E5AFB4 /* OCKHealthKitPassthroughStore.swift */; };
 		707D294F2DCBE68500980253 /* OCKStore+SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707D28CE2DCA8AA500980253 /* OCKStore+SampleData.swift */; };
 		707D29502DCBE68500980253 /* TaskID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7099D20429E98DFF0037CD8E /* TaskID.swift */; };
-		707D29512DCBE68500980253 /* CareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7036E4C3256E0A48006E9A3C /* CareView.swift */; };
 		707D29522DCBE68500980253 /* AppDelegateKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F0EFE928C2EE6C0005B5A2 /* AppDelegateKey.swift */; };
 		707D29532DCBE68500980253 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 918FDEB6271B41FF0045A0EF /* Logger.swift */; };
 		707D29542DCBE68500980253 /* TintColorFlipKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70CF66E328E1E74C00FAE977 /* TintColorFlipKey.swift */; };
@@ -87,12 +99,10 @@
 		707D295C2DCBE68500980253 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72B2C09226939E3009A9438 /* AppDelegate.swift */; };
 		707D295D2DCBE68500980253 /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7036E4BE256DA089006E9A3C /* LoginViewModel.swift */; };
 		707D295E2DCBE68500980253 /* Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91693821271B897200A634ED /* Utility.swift */; };
-		707D295F2DCBE68500980253 /* OCKSampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F0EFE728C2EC050005B5A2 /* OCKSampleApp.swift */; };
 		707D29602DCBE68500980253 /* SessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F921AB27CABE3000368CEC /* SessionDelegate.swift */; };
 		707D29612DCBE68500980253 /* Styler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9169381A271B64E100A634ED /* Styler.swift */; };
 		707D29622DCBE68500980253 /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7036E516256F2413006E9A3C /* ProfileViewModel.swift */; };
 		707D29632DCBE68500980253 /* AppDelegate+UIApplicationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70221F3328D8ABBE00971195 /* AppDelegate+UIApplicationDelegate.swift */; };
-		707D29642DCBE68500980253 /* CareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7440E4E229477F7007AD30A /* CareViewController.swift */; };
 		707D29652DCBE68500980253 /* PCKUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7083A855279CA40A00B3832E /* PCKUtility.swift */; };
 		707D29662DCBE68500980253 /* UserType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7099D20729E98E200037CD8E /* UserType.swift */; };
 		707D29672DCBE68500980253 /* ContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7036E4CD256E9A0C006E9A3C /* ContactView.swift */; };
@@ -136,7 +146,6 @@
 		70E342302DB062F8005124F9 /* NoHighlightStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E3422E2DB06281005124F9 /* NoHighlightStyle.swift */; };
 		70F03A952786093B00E5AFB4 /* OCKHealthKitPassthroughStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A942786093B00E5AFB4 /* OCKHealthKitPassthroughStore.swift */; };
 		70F03A972786098F00E5AFB4 /* OCKStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A962786098F00E5AFB4 /* OCKStore.swift */; };
-		70F03A9C27860A2000E5AFB4 /* OCKStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A962786098F00E5AFB4 /* OCKStore.swift */; };
 		70F03AA327860AFF00E5AFB4 /* OCKPatient+Parse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03AA227860AFF00E5AFB4 /* OCKPatient+Parse.swift */; };
 		70F03AA627860B2500E5AFB4 /* OCKPatient+Parse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03AA227860AFF00E5AFB4 /* OCKPatient+Parse.swift */; };
 		70F03AA827860E7700E5AFB4 /* FontColorKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03AA727860E7700E5AFB4 /* FontColorKey.swift */; };
@@ -233,6 +242,14 @@
 /* Begin PBXFileReference section */
 		03580E3E23CFA2E400A57818 /* OCKSample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OCKSample.entitlements; sourceTree = "<group>"; };
 		0520468223C3C1F2004F0F36 /* OCKSample.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OCKSample.xctestplan; sourceTree = "<group>"; };
+		18BCABDD2F59E5B30067AC75 /* AddTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskView.swift; sourceTree = "<group>"; };
+		18BCABDE2F59E5B30067AC75 /* AddTaskViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskViewModel.swift; sourceTree = "<group>"; };
+		18BCABE32F59E5E60067AC75 /* TaskCardType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCardType.swift; sourceTree = "<group>"; };
+		18BCAC322F59F8520067AC75 /* CareViewController+Cards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CareViewController+Cards.swift"; sourceTree = "<group>"; };
+		18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyTaskListViewController.swift; sourceTree = "<group>"; };
+		18BCAC3A2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CareViewController+TaskFiltering.swift"; sourceTree = "<group>"; };
+		18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageTasksView.swift; sourceTree = "<group>"; };
+		18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageTasksViewModel.swift; sourceTree = "<group>"; };
 		37E450C52F553C4F007AC644 /* CareKitCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareKitCard.swift; sourceTree = "<group>"; };
 		37E450C92F553CA9007AC644 /* OCKDimensionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCKDimensionStyle.swift; sourceTree = "<group>"; };
 		37E450CE2F553D89007AC644 /* CareKitTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareKitTaskView.swift; sourceTree = "<group>"; };
@@ -446,6 +463,9 @@
 		70308878258272CD00FFABB6 /* Care */ = {
 			isa = PBXGroup;
 			children = (
+				18BCAC3A2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift */,
+				18BCAC372F5A07F10067AC75 /* DailyTaskListViewController.swift */,
+				18BCAC322F59F8520067AC75 /* CareViewController+Cards.swift */,
 				7036E4C3256E0A48006E9A3C /* CareView.swift */,
 				E7440E4E229477F7007AD30A /* CareViewController.swift */,
 			);
@@ -455,6 +475,10 @@
 		7030887C258272E700FFABB6 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				18BCABDD2F59E5B30067AC75 /* AddTaskView.swift */,
+				18BCABDE2F59E5B30067AC75 /* AddTaskViewModel.swift */,
+				18BCAC3D2F5A21010067AC75 /* ManageTasksView.swift */,
+				18BCAC3E2F5A21020067AC75 /* ManageTasksViewModel.swift */,
 				7036E4C8256E1A6F006E9A3C /* ProfileView.swift */,
 				7036E516256F2413006E9A3C /* ProfileViewModel.swift */,
 			);
@@ -710,6 +734,7 @@
 		E72B2C08226939E3009A9438 /* OCKSample */ = {
 			isa = PBXGroup;
 			children = (
+				18BCABE32F59E5E60067AC75 /* TaskCardType.swift */,
 				03580E3E23CFA2E400A57818 /* OCKSample.entitlements */,
 				E72B2C09226939E3009A9438 /* AppDelegate.swift */,
 				7036E63F25717F85006E9A3C /* Constants.swift */,
@@ -983,12 +1008,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				707D29462DCBE68500980253 /* MainTabView.swift in Sources */,
 				37E450CF2F553D8A007AC644 /* CareKitTaskView.swift in Sources */,
 				707D29472DCBE68500980253 /* User.swift in Sources */,
 				37E450DB2F553E8D007AC644 /* OCKTask+Card.swift in Sources */,
+				18BCABE52F59E5E60067AC75 /* TaskCardType.swift in Sources */,
+				18BCAC392F5A07F10067AC75 /* DailyTaskListViewController.swift in Sources */,
 				707D29482DCBE68500980253 /* FontColorKey.swift in Sources */,
-				707D29492DCBE68500980253 /* MainView.swift in Sources */,
 				707D294A2DCBE68500980253 /* CustomStylerKey.swift in Sources */,
 				707D294B2DCBE68500980253 /* TipView.swift in Sources */,
 				707D29712DCBE6A000980253 /* OCKLocalization.swift in Sources */,
@@ -996,9 +1021,12 @@
 				707D294D2DCBE68500980253 /* InsightsView.swift in Sources */,
 				707D294E2DCBE68500980253 /* OCKHealthKitPassthroughStore.swift in Sources */,
 				37E450DD2F554515007AC644 /* OCKAnimationStyler.swift in Sources */,
+				18BCABE12F59E5B40067AC75 /* AddTaskView.swift in Sources */,
+				18BCABE22F59E5B40067AC75 /* AddTaskViewModel.swift in Sources */,
+				18BCAC412F5A21050067AC75 /* ManageTasksView.swift in Sources */,
+				18BCAC422F5A21060067AC75 /* ManageTasksViewModel.swift in Sources */,
 				707D294F2DCBE68500980253 /* OCKStore+SampleData.swift in Sources */,
 				707D29502DCBE68500980253 /* TaskID.swift in Sources */,
-				707D29512DCBE68500980253 /* CareView.swift in Sources */,
 				707D29522DCBE68500980253 /* AppDelegateKey.swift in Sources */,
 				707D29532DCBE68500980253 /* Logger.swift in Sources */,
 				707D29542DCBE68500980253 /* TintColorFlipKey.swift in Sources */,
@@ -1017,12 +1045,10 @@
 				37E450C72F553C5C007AC644 /* CareKitCard.swift in Sources */,
 				70B8E0A62F0EC1CA00440FCA /* Mutex.swift in Sources */,
 				707D295E2DCBE68500980253 /* Utility.swift in Sources */,
-				707D295F2DCBE68500980253 /* OCKSampleApp.swift in Sources */,
 				707D29602DCBE68500980253 /* SessionDelegate.swift in Sources */,
 				707D29612DCBE68500980253 /* Styler.swift in Sources */,
 				707D29622DCBE68500980253 /* ProfileViewModel.swift in Sources */,
 				707D29632DCBE68500980253 /* AppDelegate+UIApplicationDelegate.swift in Sources */,
-				707D29642DCBE68500980253 /* CareViewController.swift in Sources */,
 				707D29652DCBE68500980253 /* PCKUtility.swift in Sources */,
 				707D29662DCBE68500980253 /* UserType.swift in Sources */,
 				37E450D32F553DA7007AC644 /* CareKitTaskViewModel.swift in Sources */,
@@ -1058,6 +1084,7 @@
 				91AD923B24A4C42D00925D4D /* CareView.swift in Sources */,
 				70F921A927CA9A4000368CEC /* CustomStylerKey.swift in Sources */,
 				7099D20629E98DFF0037CD8E /* TaskID.swift in Sources */,
+				18BCAC352F59F9490067AC75 /* OCKStore.swift in Sources */,
 				7075151E28DE1A8300A57A0C /* MainView.swift in Sources */,
 				707D28D02DCA8AAB00980253 /* OCKStore+SampleData.swift in Sources */,
 				70B8E0A72F0EC1CA00440FCA /* Mutex.swift in Sources */,
@@ -1083,7 +1110,6 @@
 				918FDEB9271B493A0045A0EF /* Installation.swift in Sources */,
 				91AD923F24A4C42D00925D4D /* NotificationController.swift in Sources */,
 				70CF66E528E1E74C00FAE977 /* TintColorFlipKey.swift in Sources */,
-				70F03A9C27860A2000E5AFB4 /* OCKStore.swift in Sources */,
 				37E450D52F553E05007AC644 /* OCKHealthKitTask+Card.swift in Sources */,
 				37E450DE2F554515007AC644 /* OCKAnimationStyler.swift in Sources */,
 				70C0D474279BA492003DA141 /* Utility.swift in Sources */,
@@ -1100,6 +1126,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				18BCABDF2F59E5B40067AC75 /* AddTaskView.swift in Sources */,
+				18BCAC3C2F5A17F30067AC75 /* CareViewController+TaskFiltering.swift in Sources */,
+				18BCABE02F59E5B40067AC75 /* AddTaskViewModel.swift in Sources */,
+				18BCAC3F2F5A21030067AC75 /* ManageTasksView.swift in Sources */,
+				18BCAC402F5A21040067AC75 /* ManageTasksViewModel.swift in Sources */,
 				E7440E4F229477F7007AD30A /* CareViewController.swift in Sources */,
 				918FDEB5271B40590045A0EF /* Installation.swift in Sources */,
 				7099D20829E98E200037CD8E /* UserType.swift in Sources */,
@@ -1109,6 +1140,7 @@
 				7036E64025717F85006E9A3C /* Constants.swift in Sources */,
 				7099D20529E98DFF0037CD8E /* TaskID.swift in Sources */,
 				37E450D22F553DA7007AC644 /* CareKitTaskViewModel.swift in Sources */,
+				18BCAC342F59F8520067AC75 /* CareViewController+Cards.swift in Sources */,
 				7036E4CE256E9A0C006E9A3C /* ContactView.swift in Sources */,
 				70F03A972786098F00E5AFB4 /* OCKStore.swift in Sources */,
 				70DFD80B2567074500B9DB12 /* LoginView.swift in Sources */,
@@ -1120,6 +1152,7 @@
 				70F921A827CA9A3A00368CEC /* CustomStylerKey.swift in Sources */,
 				70221F3428D8ABBE00971195 /* AppDelegate+UIApplicationDelegate.swift in Sources */,
 				9169381D271B650700A634ED /* ColorStyler.swift in Sources */,
+				18BCABE42F59E5E60067AC75 /* TaskCardType.swift in Sources */,
 				E72B2C0A226939E3009A9438 /* AppDelegate.swift in Sources */,
 				37E450D92F553E8D007AC644 /* OCKTask+Card.swift in Sources */,
 				7036E4C4256E0A48006E9A3C /* CareView.swift in Sources */,
@@ -1143,6 +1176,7 @@
 				7036E4C9256E1A6F006E9A3C /* ProfileView.swift in Sources */,
 				7083A856279CA40A00B3832E /* PCKUtility.swift in Sources */,
 				70B8E0A52F0EC1CA00440FCA /* Mutex.swift in Sources */,
+				18BCAC382F5A07F10067AC75 /* DailyTaskListViewController.swift in Sources */,
 				70F921AE27CABE7700368CEC /* RemoteSessionDelegate.swift in Sources */,
 				37E450D72F553E05007AC644 /* OCKHealthKitTask+Card.swift in Sources */,
 				70F03A952786093B00E5AFB4 /* OCKHealthKitPassthroughStore.swift in Sources */,
