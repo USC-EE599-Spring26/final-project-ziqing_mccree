@@ -41,6 +41,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
 	private var isSyncing = false
 	private var isLoading = false
+	private var isReloadingView = false
     private var style: Styler {
         CustomStylerKey.defaultValue
     }
@@ -118,29 +119,39 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
     }
 
     @objc private func synchronizeWithRemote() {
-        guard !isSyncing else {
-            return
-        }
+        // Only one sync at a time; ignore new requests while syncing.
+        guard !isSyncing else { return }
+
         isSyncing = true
-        AppDelegateKey.defaultValue?.store.synchronize { error in
+
+        AppDelegateKey.defaultValue?.store.synchronize { [weak self] error in
             let errorString = error?.localizedDescription ?? "Successful sync with remote!"
             Logger.feed.info("\(errorString)")
+
             DispatchQueue.main.async { [weak self] in
 				guard let self else { return }
+
                 if error != nil {
                     self.navigationItem.rightBarButtonItem?.tintColor = .red
                 } else {
                     self.navigationItem.rightBarButtonItem?.tintColor = self.navigationItem.leftBarButtonItem?.tintColor
                 }
+
                 self.isSyncing = false
+
+                // Avoid infinite refresh loop: do not post shouldRefreshView from inside CareViewController.
+                // NotificationCenter.default.post(
+                //     .init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
+                // )
             }
         }
     }
 
     @objc private func reloadView(_ notification: Notification? = nil) {
-        guard !isLoading else {
-            return
-        }
+        guard !isReloadingView else { return }
+        isReloadingView = true
+        defer { isReloadingView = false }
+        guard !isLoading else { return }
         self.reload()
     }
 
@@ -158,24 +169,6 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         // Always call this method to ensure dates for
         // queries are correct.
         let date = modifyDateIfNeeded(date)
-        let isCurrentDay = isSameDay(as: date)
-
-        #if os(iOS)
-        // Only show the tip view on the current date
-        if isCurrentDay {
-            if Calendar.current.isDate(date, inSameDayAs: Date()) {
-                // Add a non-CareKit view into the list
-                let tipTitle = "Benefits of exercising"
-                let tipText = "Learn how activity can promote a healthy pregnancy."
-                let tipView = TipView()
-                tipView.headerView.titleLabel.text = tipTitle
-                tipView.headerView.detailLabel.text = tipText
-                tipView.imageView.image = UIImage(named: "exercise.jpg")
-                tipView.customStyle = CustomStylerKey.defaultValue
-                listViewController.appendView(tipView, animated: false)
-            }
-        }
-        #endif
 
         fetchAndDisplayTasks(on: listViewController, for: date)
     }
@@ -209,14 +202,12 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
     private func fetchTasks(on date: Date) async -> [any OCKAnyTask] {
         var query = OCKTaskQuery(for: date)
-        query.excludesTasksWithNoEvents = true
+        query.excludesTasksWithNoEvents = false
         do {
             let tasks = try await store.fetchAnyTasks(query: query)
-            let orderedTasks = TaskID.ordered.compactMap { orderedTaskID in
-                tasks.first(where: { $0.id == orderedTaskID })
-            }
-            return orderedTasks
+            return filterOutDemoTasks(tasks)
         } catch {
+            print("❌ fetchTasks error=\(error)")
             Logger.feed.error("Could not fetch tasks: \(error, privacy: .public)")
             return []
         }
@@ -227,8 +218,14 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         on date: Date
     ) -> [UIViewController]? {
 
-        var query = OCKEventQuery(for: date)
-        query.taskIDs = [task.id]
+        let query = OCKEventQuery(for: date)
+
+        // Prefer stored card type for OCKTask (custom + hypertension tasks).
+        if let ockTask = task as? OCKTask,
+           let cards = makeControllersForCardType(task: ockTask, query: query),
+           !cards.isEmpty {
+            return cards
+        }
 
         switch task.id {
         case TaskID.steps:
@@ -282,7 +279,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
         case TaskID.nausea:
 
-            #if os(iOS)
+        #if os(iOS)
             /*
              Also create a card (UIKit view) that displays a single event.
              The event query passed into the initializer specifies that only
@@ -310,25 +307,42 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         date: Date
     ) {
         let isCurrentDay = isSameDay(as: date)
-        tasks.compactMap {
+        var fallbackTasks: [any OCKAnyTask] = []
+
+        for task in tasks {
             let cards = self.taskViewControllers(
-                $0,
+                task,
                 on: date
-            )
-            cards?.forEach {
-                if let carekitView = $0.view as? OCKView {
+            ) ?? []
+
+            // If no cards were produced for this task, show it in the fallback list.
+            guard !cards.isEmpty else {
+                fallbackTasks.append(task)
+                continue
+            }
+
+            cards.forEach { viewController in
+                if let carekitView = viewController.view as? OCKView {
                     carekitView.customStyle = style
                 }
-                $0.view.isUserInteractionEnabled = isCurrentDay
-                $0.view.alpha = !isCurrentDay ? 0.4 : 1.0
-            }
-            return cards
-        }.forEach { (cards: [UIViewController]) in
-            cards.forEach {
-                let card = $0
-				listViewController.appendViewController(card, animated: true)
+                viewController.view.isUserInteractionEnabled = isCurrentDay
+                viewController.view.alpha = !isCurrentDay ? 0.4 : 1.0
+				listViewController.appendViewController(viewController, animated: true)
             }
         }
+
+        #if os(iOS)
+        if !fallbackTasks.isEmpty {
+            let fallbackVC = DailyTaskListViewController(tasks: fallbackTasks)
+            fallbackVC.view.isUserInteractionEnabled = isCurrentDay
+            fallbackVC.view.alpha = !isCurrentDay ? 0.4 : 1.0
+            fallbackVC.view.layer.cornerRadius = 12
+            fallbackVC.view.clipsToBounds = true
+            fallbackVC.view.backgroundColor = .clear
+            listViewController.appendViewController(fallbackVC, animated: true)
+
+        }
+        #endif
 		self.isLoading = false
     }
 }
