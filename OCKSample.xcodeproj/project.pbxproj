@@ -99,7 +99,6 @@
 		707D295C2DCBE68500980253 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E72B2C09226939E3009A9438 /* AppDelegate.swift */; };
 		707D295D2DCBE68500980253 /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7036E4BE256DA089006E9A3C /* LoginViewModel.swift */; };
 		707D295E2DCBE68500980253 /* Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91693821271B897200A634ED /* Utility.swift */; };
-		707D295F2DCBE68500980253 /* OCKSampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F0EFE728C2EC050005B5A2 /* OCKSampleApp.swift */; };
 		707D29602DCBE68500980253 /* SessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F921AB27CABE3000368CEC /* SessionDelegate.swift */; };
 		707D29612DCBE68500980253 /* Styler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9169381A271B64E100A634ED /* Styler.swift */; };
 		707D29622DCBE68500980253 /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7036E516256F2413006E9A3C /* ProfileViewModel.swift */; };
@@ -1046,7 +1045,6 @@
 				37E450C72F553C5C007AC644 /* CareKitCard.swift in Sources */,
 				70B8E0A62F0EC1CA00440FCA /* Mutex.swift in Sources */,
 				707D295E2DCBE68500980253 /* Utility.swift in Sources */,
-				707D295F2DCBE68500980253 /* OCKSampleApp.swift in Sources */,
 				707D29602DCBE68500980253 /* SessionDelegate.swift in Sources */,
 				707D29612DCBE68500980253 /* Styler.swift in Sources */,
 				707D29622DCBE68500980253 /* ProfileViewModel.swift in Sources */,
