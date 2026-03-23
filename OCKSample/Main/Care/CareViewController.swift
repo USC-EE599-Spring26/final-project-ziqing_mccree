@@ -42,6 +42,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 	private var isSyncing = false
 	private var isLoading = false
 	private var isReloadingView = false
+    private let swiftUIPadding: CGFloat = 15
     private var style: Styler {
         CustomStylerKey.defaultValue
     }

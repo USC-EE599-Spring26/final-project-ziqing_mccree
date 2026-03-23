@@ -44,6 +44,9 @@
 		37E450E12F554538007AC644 /* OCKAppearanceStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450E02F55452C007AC644 /* OCKAppearanceStyler.swift */; };
 		37E450E22F554538007AC644 /* OCKAppearanceStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450E02F55452C007AC644 /* OCKAppearanceStyler.swift */; };
 		37E450E32F554538007AC644 /* OCKAppearanceStyler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450E02F55452C007AC644 /* OCKAppearanceStyler.swift */; };
+		37E4518A2F71EE45007AC644 /* CareTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E451892F71EE3E007AC644 /* CareTask.swift */; };
+		37E4518B2F71EE45007AC644 /* CareTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E451892F71EE3E007AC644 /* CareTask.swift */; };
+		37E4518C2F71EE45007AC644 /* CareTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E451892F71EE3E007AC644 /* CareTask.swift */; };
 		5173CB8A23C3A846007655A0 /* OCKSampleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5173CB8923C3A846007655A0 /* OCKSampleUITests.swift */; };
 		70077597252228E900EC0EDA /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70077596252228E900EC0EDA /* User.swift */; };
 		7007759B252229C900EC0EDA /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70077596252228E900EC0EDA /* User.swift */; };
@@ -258,6 +261,7 @@
 		37E450D82F553E8C007AC644 /* OCKTask+Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OCKTask+Card.swift"; sourceTree = "<group>"; };
 		37E450DC2F554514007AC644 /* OCKAnimationStyler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCKAnimationStyler.swift; sourceTree = "<group>"; };
 		37E450E02F55452C007AC644 /* OCKAppearanceStyler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCKAppearanceStyler.swift; sourceTree = "<group>"; };
+		37E451892F71EE3E007AC644 /* CareTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareTask.swift; sourceTree = "<group>"; };
 		5173CB8723C3A846007655A0 /* OCKSampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OCKSampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5173CB8923C3A846007655A0 /* OCKSampleUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCKSampleUITests.swift; sourceTree = "<group>"; };
 		5173CB8B23C3A846007655A0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -405,6 +409,14 @@
 				37E450CE2F553D89007AC644 /* CareKitTaskView.swift */,
 			);
 			path = CareKitTaskView;
+			sourceTree = "<group>";
+		};
+		37E451882F71EE25007AC644 /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				37E451892F71EE3E007AC644 /* CareTask.swift */,
+			);
+			path = Protocols;
 			sourceTree = "<group>";
 		};
 		51431F9723D166AE006A7CFD /* Frameworks */ = {
@@ -734,6 +746,7 @@
 		E72B2C08226939E3009A9438 /* OCKSample */ = {
 			isa = PBXGroup;
 			children = (
+				37E451882F71EE25007AC644 /* Protocols */,
 				18BCABE32F59E5E60067AC75 /* TaskCardType.swift */,
 				03580E3E23CFA2E400A57818 /* OCKSample.entitlements */,
 				E72B2C09226939E3009A9438 /* AppDelegate.swift */,
@@ -1009,6 +1022,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				37E450CF2F553D8A007AC644 /* CareKitTaskView.swift in Sources */,
+				37E4518C2F71EE45007AC644 /* CareTask.swift in Sources */,
 				707D29472DCBE68500980253 /* User.swift in Sources */,
 				37E450DB2F553E8D007AC644 /* OCKTask+Card.swift in Sources */,
 				18BCABE52F59E5E60067AC75 /* TaskCardType.swift in Sources */,
@@ -1083,6 +1097,7 @@
 				37E450CB2F553CAA007AC644 /* OCKDimensionStyle.swift in Sources */,
 				91AD923B24A4C42D00925D4D /* CareView.swift in Sources */,
 				70F921A927CA9A4000368CEC /* CustomStylerKey.swift in Sources */,
+				37E4518B2F71EE45007AC644 /* CareTask.swift in Sources */,
 				7099D20629E98DFF0037CD8E /* TaskID.swift in Sources */,
 				18BCAC352F59F9490067AC75 /* OCKStore.swift in Sources */,
 				7075151E28DE1A8300A57A0C /* MainView.swift in Sources */,
@@ -1157,6 +1172,7 @@
 				37E450D92F553E8D007AC644 /* OCKTask+Card.swift in Sources */,
 				7036E4C4256E0A48006E9A3C /* CareView.swift in Sources */,
 				37E450E12F554538007AC644 /* OCKAppearanceStyler.swift in Sources */,
+				37E4518A2F71EE45007AC644 /* CareTask.swift in Sources */,
 				70F921B027CABED600368CEC /* LocalSyncSessionDelegate.swift in Sources */,
 				70221F2828D7809800971195 /* MainTabView.swift in Sources */,
 				70E3422F2DB06281005124F9 /* NoHighlightStyle.swift in Sources */,
@@ -1309,9 +1325,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = OCKSample/OCKSample.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1.0;
-				DEVELOPMENT_TEAM = K26KDKYY38;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_BITCODE = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1551,7 +1567,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = K26KDKYY38;
+				DEVELOPMENT_TEAM = JH99F75N3L;
 				INFOPLIST_FILE = OCKWatchSample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@executable_path/Frameworks",
@@ -1578,7 +1594,7 @@
 				CODE_SIGN_ENTITLEMENTS = "OCKWatchSample Extension/OCKWatchSample Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = K26KDKYY38;
+				DEVELOPMENT_TEAM = JH99F75N3L;
 				INFOPLIST_FILE = OCKWatchSample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"@executable_path/Frameworks",
@@ -1673,9 +1689,9 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = OCKSample/OCKSample.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1.0;
-				DEVELOPMENT_TEAM = K26KDKYY38;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_BITCODE = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
