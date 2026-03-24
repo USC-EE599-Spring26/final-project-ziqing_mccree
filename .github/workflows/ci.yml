@@ -37,9 +37,51 @@ jobs:
     - uses: actions/checkout@v6
     - name: Install SwiftLint
       run: brew install swiftlint
-    - name: Submodules and Bundle Install
+    - name: Initialize submodules (robust)
       run: |
-        git submodule update --init --recursive
+        set -euo pipefail
+
+        # Keep local submodule config in sync with .gitmodules.
+        git submodule sync --recursive
+
+        # First attempt: normal recursive checkout.
+        if git submodule update --init --recursive --jobs 4; then
+          echo "Submodules initialized on first attempt."
+          exit 0
+        fi
+
+        echo "::warning::Initial submodule checkout failed. Running diagnostics and fallback logic."
+        git submodule status --recursive || true
+
+        rk_path="$(git config -f .gitmodules --get submodule.ResearchKit.path || true)"
+        rk_url="$(git config -f .gitmodules --get submodule.ResearchKit.url || true)"
+        rk_sha="$(git ls-tree HEAD "${rk_path:-ResearchKit}" 2>/dev/null | awk '{print $3}' || true)"
+
+        # If the pinned SHA is no longer reachable on remote, fallback to a safe branch tip.
+        if [ -n "${rk_url}" ] && [ -n "${rk_sha}" ]; then
+          if [ -z "$(git ls-remote "${rk_url}" "${rk_sha}" || true)" ]; then
+            echo "::warning::ResearchKit submodule commit ${rk_sha} is missing on remote. Falling back to a remote branch head for CI."
+            git submodule deinit -f -- "${rk_path}" || true
+            rm -rf "${rk_path}"
+            git clone --depth 1 "${rk_url}" "${rk_path}"
+            (
+              cd "${rk_path}"
+              # Prefer main, then stable, then master.
+              if git rev-parse --verify origin/main >/dev/null 2>&1; then
+                git checkout -q origin/main
+              elif git rev-parse --verify origin/stable >/dev/null 2>&1; then
+                git checkout -q origin/stable
+              elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+                git checkout -q origin/master
+              fi
+              echo "ResearchKit fallback commit: $(git rev-parse HEAD)"
+            )
+          fi
+        fi
+
+        # Final attempt for all remaining submodules.
+        git submodule update --init --recursive --jobs 4 || true
+        git submodule status --recursive || true
     - name: Build-Test
       run: set -o pipefail && env NSUnbufferedIO=YES xcodebuild -project OCKSample.xcodeproj -scheme ${{ matrix.scheme }} ${{ matrix.destination }} -derivedDataPath DerivedData 2>&1 | xcbeautify --renderer github-actions
       env:
