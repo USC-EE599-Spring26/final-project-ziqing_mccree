@@ -898,7 +898,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 707D29442DCBE5E600980253 /* Build configuration list for PBXNativeTarget "OCKVisionSample" */;
 			buildPhases = (
-				707D29242DCBE5E500980253 /* Sources */,
+				F6A1B4C52F7311AA00D4E9B1 /* Sources */,
 				707D29252DCBE5E500980253 /* Frameworks */,
 				707D29262DCBE5E500980253 /* Resources */,
 				3733CADE2F720439001501B7 /* Embed Frameworks */,
@@ -1175,6 +1175,13 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F6A1B4C52F7311AA00D4E9B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5173CB8323C3A846007655A0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
