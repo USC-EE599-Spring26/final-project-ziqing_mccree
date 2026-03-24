@@ -290,7 +290,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				3733CADD2F720439001501B7 /* ResearchKitSwiftUI.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
