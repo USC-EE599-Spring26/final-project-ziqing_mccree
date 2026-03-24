@@ -165,10 +165,20 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
             query.ids = AppTaskID.surveyTaskIDs
 
             do {
-                let tasks = try await store.fetchAnyTasks(query: query)
-                let surveyTasks: [OCKTask] = tasks.compactMap { $0 }
-                    .filter { $0.card == .survey && !($0.surveySteps?.isEmpty ?? true) }
-                guard let randomSurvey = surveyTasks.randomElement() else {
+                let surveyTasks: [OCKTask]
+                if let ockStore = store as? OCKStore {
+                    surveyTasks = try await ockStore.fetchTasks(query: query)
+                } else {
+                    let tasks = try await store.fetchAnyTasks(query: query)
+                    surveyTasks = tasks.compactMap { $0 as? OCKTask }
+                }
+                let availableSurveyTasks = surveyTasks.filter {
+                    $0.card == .survey
+#if canImport(ResearchKitSwiftUI)
+                    && !($0.surveySteps?.isEmpty ?? true)
+#endif
+                }
+                guard let randomSurvey = availableSurveyTasks.randomElement() else {
                     showNoSurveyAlert()
                     return
                 }
