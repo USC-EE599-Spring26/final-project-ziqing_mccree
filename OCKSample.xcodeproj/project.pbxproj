@@ -29,11 +29,6 @@
 		3733CAD52F720409001501B7 /* ResearchKitUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3733CA692F720273001501B7 /* ResearchKitUI.framework */; platformFilter = ios; };
 		3733CAD62F720409001501B7 /* ResearchKitUI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3733CA692F720273001501B7 /* ResearchKitUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3733CAD72F720409001501B7 /* ResearchKitSwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3733CA9B2F720352001501B7 /* ResearchKitSwiftUI.framework */; platformFilters = (ios, xros, ); };
-		3733CAD82F720409001501B7 /* ResearchKitSwiftUI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3733CA9B2F720352001501B7 /* ResearchKitSwiftUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		3733CAD92F720428001501B7 /* ResearchKitSwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3733CA9B2F720352001501B7 /* ResearchKitSwiftUI.framework */; };
-		3733CADA2F720428001501B7 /* ResearchKitSwiftUI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3733CA9B2F720352001501B7 /* ResearchKitSwiftUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		3733CADC2F720439001501B7 /* ResearchKitSwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3733CA9B2F720352001501B7 /* ResearchKitSwiftUI.framework */; };
-		3733CADD2F720439001501B7 /* ResearchKitSwiftUI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3733CA9B2F720352001501B7 /* ResearchKitSwiftUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		37E450C62F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
 		37E450C72F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
 		37E450C82F553C5C007AC644 /* CareKitCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E450C52F553C4F007AC644 /* CareKitCard.swift */; };
@@ -473,7 +468,6 @@
 			files = (
 				918FDEB1271B3F9B0045A0EF /* ParseCareKit in Frameworks */,
 				70202EC7280733BC00CF73FB /* CareKit in Frameworks */,
-				3733CAD92F720428001501B7 /* ResearchKitSwiftUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
