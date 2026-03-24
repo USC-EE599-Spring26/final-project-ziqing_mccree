@@ -11,6 +11,9 @@ import CareKitEssentials
 import CareKitStore
 import Contacts
 import os.log
+#if canImport(ResearchKitSwiftUI)
+import ResearchKitSwiftUI
+#endif
 import ParseSwift
 import ParseCareKit
 
@@ -80,7 +83,8 @@ extension OCKStore {
         )
         doxylamine.instructions = String(localized: "DOXYLAMINE_INSTRUCTIONS")
         doxylamine.asset = "pills.fill"
-        doxylamine.card = .button
+        doxylamine.card = .instruction
+        doxylamine.priority = 2
 
         let nauseaSchedule = OCKSchedule(
             composing: [
@@ -104,7 +108,8 @@ extension OCKStore {
         nausea.impactsAdherence = false
         nausea.instructions = String(localized: "NAUSEA_INSTRUCTIONS")
         nausea.asset = "bed.double"
-        nausea.card = .grid
+        nausea.card = .button
+        nausea.priority = 5
 
         let kegelElement = OCKScheduleElement(
             start: beforeBreakfast,
@@ -122,6 +127,8 @@ extension OCKStore {
         )
         kegels.impactsAdherence = true
         kegels.instructions = String(localized: "KEGEL_INSTRUCTIONS")
+        kegels.card = .instruction
+        kegels.priority = 3
 
         let stretchElement = OCKScheduleElement(
             start: beforeBreakfast,
@@ -139,13 +146,18 @@ extension OCKStore {
         )
         stretch.impactsAdherence = true
         stretch.asset = "figure.walk"
-
+        stretch.card= .simple
+        stretch.priority = 4
+        let qualityOfLife = createQualityOfLifeSurveyTask(carePlanUUID: nil)
+        
+        
         _ = try await addTasksIfNotPresent(
             [
                 nausea,
                 doxylamine,
                 kegels,
-                stretch
+                stretch,
+                qualityOfLife
             ]
         )*/
         // ===== Hypertension default tasks =====
@@ -239,15 +251,20 @@ extension OCKStore {
         exercise.card = .button
         exercise.impactsAdherence = true
 
-        _ = try await addTasksIfNotPresent(
-            [
-                medAM,
-                medPM,
-                measureBP,
-                lowSodium,
-                exercise
-            ]
-        )
+        var defaultTasks: [OCKTask] = [
+            medAM,
+            medPM,
+            measureBP,
+            lowSodium,
+            exercise
+        ]
+#if canImport(ResearchKitSwiftUI)
+        defaultTasks.append(createMedicationCheckinSurveyTask(carePlanUUID: nil))
+        defaultTasks.append(createSymptomsSurveyTask(carePlanUUID: nil))
+        defaultTasks.append(createLifestyleSurveyTask(carePlanUUID: nil))
+#endif
+
+        _ = try await addTasksIfNotPresent(defaultTasks)
 
         var todayQuery = OCKTaskQuery(for: today)
         todayQuery.excludesTasksWithNoEvents = false
@@ -306,4 +323,365 @@ extension OCKStore {
             ]
         )
     }
+    #if canImport(ResearchKitSwiftUI)
+    func createQualityOfLifeSurveyTask(carePlanUUID: UUID?) -> OCKTask {
+            let qualityOfLifeTaskId = TaskID.qualityOfLife
+            let thisMorning = Calendar.current.startOfDay(for: Date())
+            let aFewDaysAgo = Calendar.current.date(byAdding: .day, value: -4, to: thisMorning)!
+            let beforeBreakfast = Calendar.current.date(byAdding: .hour, value: 8, to: aFewDaysAgo)!
+            let qualityOfLifeElement = OCKScheduleElement(
+                start: beforeBreakfast,
+                end: nil,
+                interval: DateComponents(day: 1)
+            )
+            let qualityOfLifeSchedule = OCKSchedule(
+                composing: [qualityOfLifeElement]
+            )
+            let textChoiceYesText = String(localized: "ANSWER_YES")
+            let textChoiceNoText = String(localized: "ANSWER_NO")
+            let yesValue = "Yes"
+            let noValue = "No"
+            let choices: [TextChoice] = [
+                .init(
+                    id: "\(qualityOfLifeTaskId)_0",
+                    choiceText: textChoiceYesText,
+                    value: yesValue
+                ),
+                .init(
+                    id: "\(qualityOfLifeTaskId)_1",
+                    choiceText: textChoiceNoText,
+                    value: noValue
+                )
+
+            ]
+            let questionOne = SurveyQuestion(
+                id: "\(qualityOfLifeTaskId)-managing-time",
+                type: .multipleChoice,
+                required: true,
+                title: String(localized: "QUALITY_OF_LIFE_TIME"),
+                textChoices: choices,
+                choiceSelectionLimit: .single
+            )
+            let questionTwo = SurveyQuestion(
+                id: qualityOfLifeTaskId,
+                type: .slider,
+                required: false,
+                title: String(localized: "QUALITY_OF_LIFE_STRESS"),
+                detail: String(localized: "QUALITY_OF_LIFE_STRESS_DETAIL"),
+                integerRange: 0...10,
+                sliderStepValue: 1
+            )
+            let questions = [questionOne, questionTwo]
+            let stepOne = SurveyStep(
+                id: "\(qualityOfLifeTaskId)-step-1",
+                questions: questions
+            )
+            var qualityOfLife = OCKTask(
+                id: "\(qualityOfLifeTaskId)-stress",
+                title: String(localized: "QUALITY_OF_LIFE"),
+                carePlanUUID: carePlanUUID,
+                schedule: qualityOfLifeSchedule
+            )
+            qualityOfLife.impactsAdherence = true
+            qualityOfLife.asset = "brain.head.profile"
+            qualityOfLife.card = .survey
+            qualityOfLife.surveySteps = [stepOne]
+            qualityOfLife.priority = 1
+
+            return qualityOfLife
+        }
+
+    func createMedicationCheckinSurveyTask(carePlanUUID: UUID?) -> OCKTask {
+        let taskID = AppTaskID.bpMedicationCheckinSurvey
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        let startDate = Calendar.current.date(byAdding: .day, value: -2, to: startOfToday) ?? startOfToday
+
+        let schedule = OCKSchedule(composing: [
+            OCKScheduleElement(
+                start: startDate,
+                end: nil,
+                interval: DateComponents(day: 1),
+                text: "Complete before bedtime",
+                targetValues: [],
+                duration: .allDay
+            )
+        ])
+
+        let adherenceChoices: [TextChoice] = [
+            .init(id: "\(taskID)-adherence-0", choiceText: "Yes, all doses", value: "all"),
+            .init(id: "\(taskID)-adherence-1", choiceText: "Missed 1 dose", value: "missed_one"),
+            .init(id: "\(taskID)-adherence-2", choiceText: "Missed 2+ doses", value: "missed_multiple")
+        ]
+        let sideEffectChoices: [TextChoice] = [
+            .init(id: "\(taskID)-effect-0", choiceText: "None", value: "none"),
+            .init(id: "\(taskID)-effect-1", choiceText: "Mild", value: "mild"),
+            .init(id: "\(taskID)-effect-2", choiceText: "Moderate", value: "moderate"),
+            .init(id: "\(taskID)-effect-3", choiceText: "Severe", value: "severe")
+        ]
+
+        let adherenceQuestion = SurveyQuestion(
+            id: "\(taskID)-adherence",
+            type: .multipleChoice,
+            required: true,
+            title: "Did you take your blood pressure medicine as prescribed today?",
+            textChoices: adherenceChoices,
+            choiceSelectionLimit: .single
+        )
+        let sideEffectsQuestion = SurveyQuestion(
+            id: "\(taskID)-side-effects",
+            type: .multipleChoice,
+            required: true,
+            title: "Any medication side effects today?",
+            textChoices: sideEffectChoices,
+            choiceSelectionLimit: .single
+        )
+        let confidenceQuestion = SurveyQuestion(
+            id: "\(taskID)-confidence",
+            type: .slider,
+            required: false,
+            title: "How confident are you about following tomorrow's medication plan?",
+            detail: "0 = not confident, 10 = very confident",
+            integerRange: 0...10,
+            sliderStepValue: 1
+        )
+
+        let step = SurveyStep(
+            id: "\(taskID)-step-1",
+            questions: [adherenceQuestion, sideEffectsQuestion, confidenceQuestion]
+        )
+
+        var task = OCKTask(
+            id: taskID,
+            title: "Medication Check-In Survey",
+            carePlanUUID: carePlanUUID,
+            schedule: schedule
+        )
+        task.instructions = "Daily medication adherence and side effect check-in."
+        task.asset = "pills.circle"
+        task.card = .survey
+        task.surveySteps = [step]
+        task.impactsAdherence = true
+        return task
+    }
+
+    func createSymptomsSurveyTask(carePlanUUID: UUID?) -> OCKTask {
+        let taskID = AppTaskID.bpSymptomsSurvey
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        let startDate = Calendar.current.date(byAdding: .day, value: -2, to: startOfToday) ?? startOfToday
+
+        let schedule = OCKSchedule(composing: [
+            OCKScheduleElement(
+                start: startDate,
+                end: nil,
+                interval: DateComponents(day: 1),
+                text: "Record evening symptoms",
+                targetValues: [],
+                duration: .allDay
+            )
+        ])
+
+        let headacheQuestion = SurveyQuestion(
+            id: "\(taskID)-headache",
+            type: .slider,
+            required: true,
+            title: "How severe was your headache today?",
+            detail: "0 = none, 10 = severe",
+            integerRange: 0...10,
+            sliderStepValue: 1
+        )
+        let dizzinessQuestion = SurveyQuestion(
+            id: "\(taskID)-dizziness",
+            type: .slider,
+            required: true,
+            title: "How severe was your dizziness today?",
+            detail: "0 = none, 10 = severe",
+            integerRange: 0...10,
+            sliderStepValue: 1
+        )
+        let chestPainChoices: [TextChoice] = [
+            .init(id: "\(taskID)-chest-0", choiceText: "No", value: "no"),
+            .init(id: "\(taskID)-chest-1", choiceText: "Yes", value: "yes")
+        ]
+        let chestPainQuestion = SurveyQuestion(
+            id: "\(taskID)-chest-pain",
+            type: .multipleChoice,
+            required: true,
+            title: "Did you experience chest discomfort or shortness of breath?",
+            textChoices: chestPainChoices,
+            choiceSelectionLimit: .single
+        )
+
+        let step = SurveyStep(
+            id: "\(taskID)-step-1",
+            questions: [headacheQuestion, dizzinessQuestion, chestPainQuestion]
+        )
+
+        var task = OCKTask(
+            id: taskID,
+            title: "Blood Pressure Symptom Survey",
+            carePlanUUID: carePlanUUID,
+            schedule: schedule
+        )
+        task.instructions = "Track key symptoms to support treatment adjustments."
+        task.asset = "heart.text.square"
+        task.card = .survey
+        task.surveySteps = [step]
+        task.impactsAdherence = true
+        return task
+    }
+
+    func createLifestyleSurveyTask(carePlanUUID: UUID?) -> OCKTask {
+        let taskID = AppTaskID.bpLifestyleSurvey
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        let startDate = Calendar.current.date(byAdding: .day, value: -2, to: startOfToday) ?? startOfToday
+
+        let schedule = OCKSchedule(composing: [
+            OCKScheduleElement(
+                start: startDate,
+                end: nil,
+                interval: DateComponents(day: 1),
+                text: "End-of-day lifestyle review",
+                targetValues: [],
+                duration: .allDay
+            )
+        ])
+
+        let sodiumChoices: [TextChoice] = [
+            .init(id: "\(taskID)-sodium-0", choiceText: "Low sodium most of the day", value: "good"),
+            .init(id: "\(taskID)-sodium-1", choiceText: "Some high-sodium meals", value: "mixed"),
+            .init(id: "\(taskID)-sodium-2", choiceText: "Mostly high-sodium food", value: "high")
+        ]
+        let activityQuestion = SurveyQuestion(
+            id: "\(taskID)-activity-minutes",
+            type: .slider,
+            required: false,
+            title: "How many minutes of activity did you complete today?",
+            detail: "Move the slider to nearest 10 minutes",
+            integerRange: 0...120,
+            sliderStepValue: 10
+        )
+        let stressQuestion = SurveyQuestion(
+            id: "\(taskID)-stress",
+            type: .slider,
+            required: true,
+            title: "How stressed did you feel today?",
+            detail: "0 = calm, 10 = very stressed",
+            integerRange: 0...10,
+            sliderStepValue: 1
+        )
+        let sodiumQuestion = SurveyQuestion(
+            id: "\(taskID)-sodium",
+            type: .multipleChoice,
+            required: true,
+            title: "How well did you follow a low-sodium plan today?",
+            textChoices: sodiumChoices,
+            choiceSelectionLimit: .single
+        )
+
+        let step = SurveyStep(
+            id: "\(taskID)-step-1",
+            questions: [activityQuestion, stressQuestion, sodiumQuestion]
+        )
+
+        var task = OCKTask(
+            id: taskID,
+            title: "Lifestyle & Stress Survey",
+            carePlanUUID: carePlanUUID,
+            schedule: schedule
+        )
+        task.instructions = "Capture daily activity, stress, and dietary pattern."
+        task.asset = "figure.walk.circle"
+        task.card = .survey
+        task.surveySteps = [step]
+        task.impactsAdherence = false
+        return task
+    }
+    #endif
+
+    func persistLatestSurveySummariesToCurrentUser() async {
+        do {
+            var user = try await User.current()
+            let rangeStart = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+            let interval = DateInterval(start: rangeStart, end: Date())
+            var eventQuery = OCKEventQuery(dateInterval: interval)
+            eventQuery.taskIDs = AppTaskID.surveyTaskIDs
+
+            let events = try await fetchEvents(query: eventQuery)
+            var latestByTaskID: [String: (date: Date, summary: String)] = [:]
+
+            for event in events {
+                guard let outcome = event.outcome, !outcome.values.isEmpty else {
+                    continue
+                }
+                let valueSummary = outcome.values
+                    .map { String(describing: $0) }
+                    .joined(separator: " | ")
+                let effectiveDate = outcome.effectiveDate
+                let summary = "\(effectiveDate.ISO8601Format()): \(valueSummary)"
+
+                if let existing = latestByTaskID[event.task.id] {
+                    if effectiveDate > existing.date {
+                        latestByTaskID[event.task.id] = (effectiveDate, summary)
+                    }
+                } else {
+                    latestByTaskID[event.task.id] = (effectiveDate, summary)
+                }
+            }
+
+            var summaries = latestByTaskID.mapValues(\.summary)
+            let riskLevel = computeRiskLevel(from: summaries)
+            summaries["bpRiskLevel"] = riskLevel.rawValue
+            summaries["bpPlanRecommendation"] = recommendationText(for: riskLevel)
+            summaries["bpRiskUpdatedAt"] = Date().ISO8601Format()
+
+            user.surveyResponseSummaries = summaries
+            _ = try await user.save()
+        } catch {
+            Logger.ockStore.error("Failed persisting survey summaries to user: \(error)")
+        }
+    }
+
+    private func computeRiskLevel(from summaries: [String: String]) -> HypertensionRiskLevel {
+        let text = summaries
+            .values
+            .joined(separator: " ")
+            .lowercased()
+
+        var score = 0
+        score += scoreIfContains(text, anyOf: ["missed_multiple"], points: 4)
+        score += scoreIfContains(text, anyOf: ["missed_one"], points: 2)
+        score += scoreIfContains(text, anyOf: ["severe"], points: 3)
+        score += scoreIfContains(text, anyOf: ["moderate"], points: 2)
+        score += scoreIfContains(text, anyOf: ["chest", "shortness of breath", "\"yes\""], points: 2)
+        score += scoreIfContains(text, anyOf: ["high-sodium", "\"high\""], points: 1)
+
+        if score >= 6 {
+            return .red
+        }
+        if score >= 3 {
+            return .yellow
+        }
+        return .green
+    }
+
+    private func scoreIfContains(_ text: String, anyOf candidates: [String], points: Int) -> Int {
+        candidates.contains(where: { text.contains($0) }) ? points : 0
+    }
+
+    private func recommendationText(for level: HypertensionRiskLevel) -> String {
+        switch level {
+        case .green:
+            return "Continue current medication and monitoring plan."
+        case .yellow:
+            return "Reinforce medication reminders, review sodium intake, and monitor symptoms closely."
+        case .red:
+            return "Escalate follow-up: prioritize medication adherence, daily BP checks, and contact care team."
+        }
+    }
+}
+
+enum HypertensionRiskLevel: String {
+    case green
+    case yellow
+    case red
 }

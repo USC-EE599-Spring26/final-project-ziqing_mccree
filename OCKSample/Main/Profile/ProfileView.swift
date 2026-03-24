@@ -21,63 +21,93 @@ struct ProfileView: View {
     @State var isPresentingManageTasks = false
     @Environment(\.appDelegate) private var appDelegate
 
+    private var riskColor: Color {
+        switch viewModel.riskLevelText {
+        case "RED":
+            return .red
+        case "YELLOW":
+            return .orange
+        case "GREEN":
+            return .green
+        default:
+            return .gray
+        }
+    }
+
     var body: some View {
         NavigationView {
-            VStack {
+            ScrollView {
                 VStack(alignment: .leading) {
-                    TextField("First Name",
-                              text: $viewModel.firstName)
-                    .padding()
-                    .cornerRadius(20.0)
-                    .shadow(radius: 10.0, x: 20, y: 10)
-
-                    TextField("Last Name",
-                              text: $viewModel.lastName)
-                    .padding()
-                    .cornerRadius(20.0)
-                    .shadow(radius: 10.0, x: 20, y: 10)
-
-                    DatePicker("Birthday",
-                               selection: $viewModel.birthday,
-                               displayedComponents: [DatePickerComponents.date])
-                    .padding()
-                    .cornerRadius(20.0)
-                    .shadow(radius: 10.0, x: 20, y: 10)
-                }
-
-                Button(action: {
-                    Task {
-                        do {
-                            try await viewModel.saveProfile()
-                        } catch {
-                            Logger.profile.error("Error saving profile: \(error)")
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Current Risk Level: \(viewModel.riskLevelText)")
+                            .font(.headline)
+                            .foregroundColor(riskColor)
+                        Text(viewModel.planRecommendationText)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        if !viewModel.riskUpdatedAtText.isEmpty {
+                            Text(viewModel.riskUpdatedAtText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
-                }, label: {
-                    Text("Save Profile")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 300, height: 50)
-                })
-                .background(Color(.green))
-                .cornerRadius(15)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(riskColor.opacity(0.12))
+                    .cornerRadius(12)
 
-                // Notice that "action" is a closure (which is essentially
-                // a function as argument like we discussed in class)
-                Button(action: {
-                    Task {
-                        await loginViewModel.logout()
-                    }
-                }, label: {
-                    Text("Log Out")
-                        .font(.headline)
-                        .foregroundColor(.white)
+                    VStack(alignment: .leading) {
+                        TextField("First Name", text: $viewModel.firstName)
+                            .padding()
+                            .cornerRadius(20.0)
+                            .shadow(radius: 10.0, x: 20, y: 10)
+
+                        TextField("Last Name", text: $viewModel.lastName)
+                            .padding()
+                            .cornerRadius(20.0)
+                            .shadow(radius: 10.0, x: 20, y: 10)
+
+                        DatePicker(
+                            "Birthday",
+                            selection: $viewModel.birthday,
+                            displayedComponents: [DatePickerComponents.date]
+                        )
                         .padding()
-                        .frame(width: 300, height: 50)
-                })
-                .background(Color(.red))
-                .cornerRadius(15)
+                        .cornerRadius(20.0)
+                        .shadow(radius: 10.0, x: 20, y: 10)
+                    }
+
+                    Button(action: {
+                        Task {
+                            do {
+                                try await viewModel.saveProfile()
+                            } catch {
+                                Logger.profile.error("Error saving profile: \(error)")
+                            }
+                        }
+                    }, label: {
+                        Text("Save Profile")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(width: 300, height: 50)
+                    })
+                    .background(Color(.green))
+                    .cornerRadius(15)
+
+                    Button(action: {
+                        Task {
+                            await loginViewModel.logout()
+                        }
+                    }, label: {
+                        Text("Log Out")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(width: 300, height: 50)
+                    })
+                    .background(Color(.red))
+                    .cornerRadius(15)
 
                     if let store = appDelegate?.store {
                         Button(action: { isPresentingManageTasks = true }) {
@@ -96,6 +126,8 @@ struct ProfileView: View {
                         }
                     }
                 }
+                .padding()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add Task") {
@@ -113,6 +145,9 @@ struct ProfileView: View {
         }
         .onReceive(patients.publisher) { publishedPatient in
             viewModel.updatePatient(publishedPatient.result)
+        }
+        .task {
+            await viewModel.refreshRiskSummary()
         }
     }
 }

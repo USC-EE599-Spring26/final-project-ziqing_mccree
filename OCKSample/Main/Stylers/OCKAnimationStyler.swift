@@ -12,7 +12,7 @@ import UIKit
 struct AnimationStyle: OCKAnimationStyler {
     #if os(iOS)
 
-    var separatorHeight: CGFloat { 1.0 / UIScreen.main.scale }
+    var separatorHeight: CGFloat { 1.0 }
 
     #endif
     // Faster, more responsive state change animations for cards and buttons.

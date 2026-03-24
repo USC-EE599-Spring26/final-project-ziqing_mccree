@@ -33,6 +33,9 @@ import CareKitEssentials
 import CareKitStore
 import CareKitUI
 import os.log
+#if canImport(ResearchKitSwiftUI)
+import ResearchKitSwiftUI
+#endif
 import SwiftUI
 import UIKit
 
@@ -42,12 +45,19 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 	private var isSyncing = false
 	private var isLoading = false
 	private var isReloadingView = false
+    private let swiftUIPadding: CGFloat = 15
     private var style: Styler {
         CustomStylerKey.defaultValue
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: "Random Survey",
+            style: .plain,
+            target: self,
+            action: #selector(presentRandomSurvey)
+        )
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .refresh,
             target: self,
@@ -147,6 +157,60 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         }
     }
 
+    @objc private func presentRandomSurvey() {
+        Task {
+            let today = Date()
+            var query = OCKTaskQuery(for: today)
+            query.excludesTasksWithNoEvents = false
+            query.ids = AppTaskID.surveyTaskIDs
+
+            do {
+                let surveyTasks: [OCKTask]
+                if let ockStore = store as? OCKStore {
+                    surveyTasks = try await ockStore.fetchTasks(query: query)
+                } else {
+                    let tasks = try await store.fetchAnyTasks(query: query)
+                    surveyTasks = tasks.compactMap { $0 as? OCKTask }
+                }
+                let availableSurveyTasks = surveyTasks.filter { task in
+                    guard task.card == .survey else {
+                        return false
+                    }
+#if canImport(ResearchKitSwiftUI)
+                    return !(task.surveySteps?.isEmpty ?? true)
+#else
+                    return true
+#endif
+                }
+                guard let randomSurvey = availableSurveyTasks.randomElement() else {
+                    showNoSurveyAlert()
+                    return
+                }
+
+                let eventQuery = OCKEventQuery(for: today)
+                guard let surveyVC = researchSurveyViewController(query: eventQuery, task: randomSurvey) else {
+                    showNoSurveyAlert()
+                    return
+                }
+                surveyVC.title = randomSurvey.title ?? "Survey"
+                navigationController?.pushViewController(surveyVC, animated: true)
+            } catch {
+                Logger.feed.error("Failed to load random survey: \(error, privacy: .public)")
+                showNoSurveyAlert()
+            }
+        }
+    }
+
+    private func showNoSurveyAlert() {
+        let alert = UIAlertController(
+            title: "No Survey Available",
+            message: "Could not find a survey task for today.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+
     @objc private func reloadView(_ notification: Notification? = nil) {
         guard !isReloadingView else { return }
         isReloadingView = true
@@ -173,14 +237,17 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         fetchAndDisplayTasks(on: listViewController, for: date)
     }
 
-    private func isSameDay(as date: Date) -> Bool {
+}
+
+private extension CareViewController {
+    func isSameDay(as date: Date) -> Bool {
         Calendar.current.isDate(
             date,
             inSameDayAs: Date()
         )
     }
 
-    private func modifyDateIfNeeded(_ date: Date) -> Date {
+    func modifyDateIfNeeded(_ date: Date) -> Date {
         guard date < .now else {
             return date
         }
@@ -190,22 +257,26 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         return date.endOfDay
     }
 
-    private func fetchAndDisplayTasks(
+    func fetchAndDisplayTasks(
         on listViewController: OCKListViewController,
         for date: Date
     ) {
         Task {
             let tasks = await self.fetchTasks(on: date)
-			appendTasks(tasks, to: listViewController, date: date)
+            appendTasks(tasks, to: listViewController, date: date)
+            if let ockStore = store as? OCKStore {
+                await ockStore.persistLatestSurveySummariesToCurrentUser()
+            }
         }
     }
 
-    private func fetchTasks(on date: Date) async -> [any OCKAnyTask] {
+    func fetchTasks(on date: Date) async -> [any OCKAnyTask] {
         var query = OCKTaskQuery(for: date)
         query.excludesTasksWithNoEvents = false
         do {
             let tasks = try await store.fetchAnyTasks(query: query)
-            return filterOutDemoTasks(tasks)
+            let filtered = filterOutDemoTasks(tasks)
+            return await riskAdjustedTasks(filtered)
         } catch {
             print("❌ fetchTasks error=\(error)")
             Logger.feed.error("Could not fetch tasks: \(error, privacy: .public)")
@@ -213,7 +284,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         }
     }
 
-    private func taskViewControllers(
+    func taskViewControllers(
         _ task: any OCKAnyTask,
         on date: Date
     ) -> [UIViewController]? {
@@ -221,10 +292,15 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         let query = OCKEventQuery(for: date)
 
         // Prefer stored card type for OCKTask (custom + hypertension tasks).
-        if let ockTask = task as? OCKTask,
-           let cards = makeControllersForCardType(task: ockTask, query: query),
-           !cards.isEmpty {
-            return cards
+        if let ockTask = task as? OCKTask {
+            if ockTask.card == .survey,
+               let surveyController = researchSurveyViewController(query: query, task: ockTask) {
+                return [surveyController]
+            }
+            if let cards = makeControllersForCardType(task: ockTask, query: query),
+               !cards.isEmpty {
+                return cards
+            }
         }
 
         switch task.id {
@@ -301,7 +377,43 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         }
     }
 
-    private func appendTasks(
+    func researchSurveyViewController(
+        query: OCKEventQuery,
+        task: OCKTask
+    ) -> UIViewController? {
+        #if canImport(ResearchKitSwiftUI)
+        guard let steps = task.surveySteps else {
+            return nil
+        }
+
+        let surveyViewController = EventQueryContentView<ResearchSurveyView>(
+            query: query
+        ) {
+            EventQueryContentView<ResearchCareForm>(
+                query: query
+            ) {
+                ForEach(steps) { step in
+                    ResearchFormStep(
+                        title: task.title,
+                        subtitle: task.instructions
+                    ) {
+                        ForEach(step.questions) { question in
+                            question.view()
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.vertical, swiftUIPadding)
+        .formattedHostingController()
+
+        return surveyViewController
+        #else
+        return nil
+        #endif
+    }
+
+    func appendTasks(
         _ tasks: [any OCKAnyTask],
         to listViewController: OCKListViewController,
         date: Date
@@ -327,7 +439,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
                 }
                 viewController.view.isUserInteractionEnabled = isCurrentDay
                 viewController.view.alpha = !isCurrentDay ? 0.4 : 1.0
-				listViewController.appendViewController(viewController, animated: true)
+                listViewController.appendViewController(viewController, animated: true)
             }
         }
 
@@ -343,7 +455,68 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
         }
         #endif
-		self.isLoading = false
+        self.isLoading = false
+    }
+
+    func riskAdjustedTasks(_ tasks: [any OCKAnyTask]) async -> [any OCKAnyTask] {
+        do {
+            let user = try await User.current()
+            let levelRaw = user.surveyResponseSummaries?["bpRiskLevel"] ?? HypertensionRiskLevel.green.rawValue
+            let level = HypertensionRiskLevel(rawValue: levelRaw) ?? .green
+            let rank = riskRankMap(for: level)
+
+            return tasks.sorted { left, right in
+                let leftRank = rank[left.id] ?? 1000
+                let rightRank = rank[right.id] ?? 1000
+                if leftRank == rightRank {
+                    return left.id < right.id
+                }
+                return leftRank < rightRank
+            }
+        } catch {
+            return tasks
+        }
+    }
+
+    func riskRankMap(for level: HypertensionRiskLevel) -> [String: Int] {
+        let orderedIDs: [String]
+        switch level {
+        case .red:
+            orderedIDs = [
+                AppTaskID.bpMedicationAM,
+                AppTaskID.bpMedicationPM,
+                AppTaskID.bpMeasurement,
+                AppTaskID.bpMedicationCheckinSurvey,
+                AppTaskID.bpSymptomsSurvey,
+                AppTaskID.bpLifestyleSurvey,
+                AppTaskID.lowSodiumCheck,
+                AppTaskID.exercise
+            ]
+        case .yellow:
+            orderedIDs = [
+                AppTaskID.bpMedicationAM,
+                AppTaskID.bpMedicationPM,
+                AppTaskID.bpMeasurement,
+                AppTaskID.bpMedicationCheckinSurvey,
+                AppTaskID.bpSymptomsSurvey,
+                AppTaskID.lowSodiumCheck,
+                AppTaskID.exercise,
+                AppTaskID.bpLifestyleSurvey
+            ]
+        case .green:
+            orderedIDs = [
+                AppTaskID.bpMedicationAM,
+                AppTaskID.bpMedicationPM,
+                AppTaskID.bpMeasurement,
+                AppTaskID.lowSodiumCheck,
+                AppTaskID.exercise,
+                AppTaskID.bpMedicationCheckinSurvey,
+                AppTaskID.bpSymptomsSurvey,
+                AppTaskID.bpLifestyleSurvey
+            ]
+        }
+
+        return Dictionary(uniqueKeysWithValues: orderedIDs.enumerated().map { ($0.element, $0.offset) })
     }
 }
 
