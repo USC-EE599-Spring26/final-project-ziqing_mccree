@@ -440,7 +440,6 @@
 			files = (
 				918FDEAF271B3F8F0045A0EF /* ParseCareKit in Frameworks */,
 				3733CAD52F720409001501B7 /* ResearchKitUI.framework in Frameworks */,
-				3733CAD72F720409001501B7 /* ResearchKitSwiftUI.framework in Frameworks */,
 				708542F9276687F90029E888 /* HealthKit.framework in Frameworks */,
 				3733CAD12F720409001501B7 /* ResearchKit.framework in Frameworks */,
 				3733CAD32F720409001501B7 /* ResearchKitActiveTask.framework in Frameworks */,
