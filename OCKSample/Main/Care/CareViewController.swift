@@ -33,6 +33,7 @@ import CareKitEssentials
 import CareKitStore
 import CareKitUI
 import os.log
+import ResearchKitSwiftUI
 import SwiftUI
 import UIKit
 
@@ -174,14 +175,17 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         fetchAndDisplayTasks(on: listViewController, for: date)
     }
 
-    private func isSameDay(as date: Date) -> Bool {
+}
+
+private extension CareViewController {
+    func isSameDay(as date: Date) -> Bool {
         Calendar.current.isDate(
             date,
             inSameDayAs: Date()
         )
     }
 
-    private func modifyDateIfNeeded(_ date: Date) -> Date {
+    func modifyDateIfNeeded(_ date: Date) -> Date {
         guard date < .now else {
             return date
         }
@@ -191,17 +195,17 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         return date.endOfDay
     }
 
-    private func fetchAndDisplayTasks(
+    func fetchAndDisplayTasks(
         on listViewController: OCKListViewController,
         for date: Date
     ) {
         Task {
             let tasks = await self.fetchTasks(on: date)
-			appendTasks(tasks, to: listViewController, date: date)
+            appendTasks(tasks, to: listViewController, date: date)
         }
     }
 
-    private func fetchTasks(on date: Date) async -> [any OCKAnyTask] {
+    func fetchTasks(on date: Date) async -> [any OCKAnyTask] {
         var query = OCKTaskQuery(for: date)
         query.excludesTasksWithNoEvents = false
         do {
@@ -214,7 +218,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         }
     }
 
-    private func taskViewControllers(
+    func taskViewControllers(
         _ task: any OCKAnyTask,
         on date: Date
     ) -> [UIViewController]? {
@@ -302,7 +306,40 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         }
     }
 
-    private func appendTasks(
+    func researchSurveyViewController(
+        query: OCKEventQuery,
+        task: OCKTask
+    ) -> UIViewController? {
+
+        guard let steps = task.surveySteps else {
+            return nil
+        }
+
+        let surveyViewController = EventQueryContentView<ResearchSurveyView>(
+            query: query
+        ) {
+            EventQueryContentView<ResearchCareForm>(
+                query: query
+            ) {
+                ForEach(steps) { step in
+                    ResearchFormStep(
+                        title: task.title,
+                        subtitle: task.instructions
+                    ) {
+                        ForEach(step.questions) { question in
+                            question.view()
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.vertical, swiftUIPadding)
+        .formattedHostingController()
+
+        return surveyViewController
+    }
+
+    func appendTasks(
         _ tasks: [any OCKAnyTask],
         to listViewController: OCKListViewController,
         date: Date
@@ -328,7 +365,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
                 }
                 viewController.view.isUserInteractionEnabled = isCurrentDay
                 viewController.view.alpha = !isCurrentDay ? 0.4 : 1.0
-				listViewController.appendViewController(viewController, animated: true)
+                listViewController.appendViewController(viewController, animated: true)
             }
         }
 
@@ -344,7 +381,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
         }
         #endif
-		self.isLoading = false
+        self.isLoading = false
     }
 }
 

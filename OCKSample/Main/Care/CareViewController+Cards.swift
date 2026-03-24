@@ -50,7 +50,7 @@ extension CareViewController {
         case .labeledValue: return "Labeled Value"
         case .link: return "Link"
         case .featured: return "Featured Content"
-        case .instruction, .simple, .checklist, .button, .grid, .numericProgress: return ""
+        case .instruction, .simple, .checklist, .button, .grid, .numericProgress, .custom, .survey: return ""
         }
     }
 
@@ -87,6 +87,12 @@ extension CareViewController {
             return [viewController]
 
         case .numericProgress:
+            let viewController = OCKSimpleTaskViewController(query: taskQuery, store: store)
+            return [viewController]
+        case .survey:
+            let viewController = OCKSimpleTaskViewController(query: taskQuery, store: store)
+            return [viewController]
+        case .custom:
             let viewController = OCKSimpleTaskViewController(query: taskQuery, store: store)
             return [viewController]
 
