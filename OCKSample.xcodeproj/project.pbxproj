@@ -974,6 +974,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				F6A1B4E72F7316F300D4E9B1 /* PBXTargetDependency */,
 				91AD924A24A4C42E00925D4D /* PBXTargetDependency */,
 			);
 			name = OCKSample;
@@ -1383,6 +1384,11 @@
 			isa = PBXTargetDependency;
 			target = E72B2C05226939E3009A9438 /* OCKSample */;
 			targetProxy = 5173CB8C23C3A846007655A0 /* PBXContainerItemProxy */;
+		};
+		F6A1B4E72F7316F300D4E9B1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ResearchKitSwiftUI;
+			targetProxy = 3733CA9A2F720352001501B7 /* PBXContainerItemProxy */;
 		};
 		707D293B2DCBE5E600980253 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
