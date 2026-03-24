@@ -456,7 +456,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				707D29762DCBE89600980253 /* ParseCareKit in Frameworks */,
 				707D292D2DCBE5E500980253 /* RealityKitContent in Frameworks */,
 				3733CADC2F720439001501B7 /* ResearchKitSwiftUI.framework in Frameworks */,
 			);
@@ -914,7 +913,6 @@
 			name = OCKVisionSample;
 			packageProductDependencies = (
 				707D292C2DCBE5E500980253 /* RealityKitContent */,
-				707D29752DCBE89600980253 /* ParseCareKit */,
 			);
 			productName = OCKVisionSample;
 			productReference = 707D29282DCBE5E500980253 /* OCKVisionSample.app */;
