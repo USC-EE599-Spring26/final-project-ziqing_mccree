@@ -33,7 +33,9 @@ import CareKitEssentials
 import CareKitStore
 import CareKitUI
 import os.log
+#if canImport(ResearchKitSwiftUI)
 import ResearchKitSwiftUI
+#endif
 import SwiftUI
 import UIKit
 
@@ -365,7 +367,7 @@ private extension CareViewController {
         query: OCKEventQuery,
         task: OCKTask
     ) -> UIViewController? {
-
+        #if canImport(ResearchKitSwiftUI)
         guard let steps = task.surveySteps else {
             return nil
         }
@@ -392,6 +394,9 @@ private extension CareViewController {
         .formattedHostingController()
 
         return surveyViewController
+        #else
+        return nil
+        #endif
     }
 
     func appendTasks(
