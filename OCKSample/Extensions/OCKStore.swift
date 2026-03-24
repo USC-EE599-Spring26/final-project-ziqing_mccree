@@ -11,7 +11,9 @@ import CareKitEssentials
 import CareKitStore
 import Contacts
 import os.log
+#if canImport(ResearchKitSwiftUI)
 import ResearchKitSwiftUI
+#endif
 import ParseSwift
 import ParseCareKit
 
@@ -249,22 +251,20 @@ extension OCKStore {
         exercise.card = .button
         exercise.impactsAdherence = true
 
-        let medicationCheckinSurvey = createMedicationCheckinSurveyTask(carePlanUUID: nil)
-        let symptomsSurvey = createSymptomsSurveyTask(carePlanUUID: nil)
-        let lifestyleSurvey = createLifestyleSurveyTask(carePlanUUID: nil)
+        var defaultTasks: [OCKTask] = [
+            medAM,
+            medPM,
+            measureBP,
+            lowSodium,
+            exercise
+        ]
+#if canImport(ResearchKitSwiftUI)
+        defaultTasks.append(createMedicationCheckinSurveyTask(carePlanUUID: nil))
+        defaultTasks.append(createSymptomsSurveyTask(carePlanUUID: nil))
+        defaultTasks.append(createLifestyleSurveyTask(carePlanUUID: nil))
+#endif
 
-        _ = try await addTasksIfNotPresent(
-            [
-                medAM,
-                medPM,
-                measureBP,
-                lowSodium,
-                exercise,
-                medicationCheckinSurvey,
-                symptomsSurvey,
-                lifestyleSurvey
-            ]
-        )
+        _ = try await addTasksIfNotPresent(defaultTasks)
 
         var todayQuery = OCKTaskQuery(for: today)
         todayQuery.excludesTasksWithNoEvents = false
@@ -323,6 +323,7 @@ extension OCKStore {
             ]
         )
     }
+    #if canImport(ResearchKitSwiftUI)
     func createQualityOfLifeSurveyTask(carePlanUUID: UUID?) -> OCKTask {
             let qualityOfLifeTaskId = TaskID.qualityOfLife
             let thisMorning = Calendar.current.startOfDay(for: Date())
@@ -595,6 +596,7 @@ extension OCKStore {
         task.impactsAdherence = false
         return task
     }
+    #endif
 
     func persistLatestSurveySummariesToCurrentUser() async {
         do {
