@@ -9,6 +9,7 @@
 import CareKit
 import CareKitStore
 import CareKitEssentials
+import ParseSwift
 import SwiftUI
 import os.log
 
@@ -20,6 +21,9 @@ class ProfileViewModel: ObservableObject {
     var firstName = ""
     var lastName = ""
     var birthday = Date()
+    @Published private(set) var riskLevelText = "Unknown"
+    @Published private(set) var planRecommendationText = "Complete surveys to generate a personalized plan."
+    @Published private(set) var riskUpdatedAtText = ""
 
     var patient: OCKPatient? {
         willSet {
@@ -78,6 +82,32 @@ class ProfileViewModel: ObservableObject {
             } else {
                 Logger.profile.error("Patient was updated in store but could not be cast to OCKPatient.")
             }
+        }
+
+        await refreshRiskSummary()
+    }
+
+    func refreshRiskSummary() async {
+        do {
+            let user = try await User.current()
+            let summaries = user.surveyResponseSummaries ?? [:]
+            riskLevelText = (summaries["bpRiskLevel"] ?? "unknown").uppercased()
+            planRecommendationText = summaries["bpPlanRecommendation"]
+                ?? "Complete surveys to generate a personalized plan."
+
+            if let updatedAtString = summaries["bpRiskUpdatedAt"],
+               let updatedAt = ISO8601DateFormatter().date(from: updatedAtString) {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .medium
+                formatter.timeStyle = .short
+                riskUpdatedAtText = "Updated: \(formatter.string(from: updatedAt))"
+            } else {
+                riskUpdatedAtText = ""
+            }
+        } catch {
+            riskLevelText = "UNKNOWN"
+            planRecommendationText = "Could not load risk summary."
+            riskUpdatedAtText = ""
         }
     }
 }

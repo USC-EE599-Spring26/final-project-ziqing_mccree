@@ -25,6 +25,7 @@ struct User: ParseUser {
     // Custom properties
     var lastTypeSelected: String?
     var userTypeUUIDs: [String: UUID]?
+    var surveyResponseSummaries: [String: String]?
 }
 
 // MARK: Default Implementation
@@ -38,6 +39,10 @@ extension User {
         if updated.shouldRestoreKey(\.userTypeUUIDs,
                                      original: object) {
             updated.userTypeUUIDs = object.userTypeUUIDs
+        }
+        if updated.shouldRestoreKey(\.surveyResponseSummaries,
+                                     original: object) {
+            updated.surveyResponseSummaries = object.surveyResponseSummaries
         }
         return updated
     }

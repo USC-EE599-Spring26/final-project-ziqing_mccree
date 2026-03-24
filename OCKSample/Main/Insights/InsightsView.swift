@@ -10,8 +10,10 @@ import CareKit
 import CareKitEssentials
 import CareKitStore
 import CareKitUI
+import ParseSwift
 import SwiftUI
 
+// swiftlint:disable type_body_length
 struct InsightsView: View {
 
 	@CareStoreFetchRequest(query: query()) private var events
@@ -20,13 +22,19 @@ struct InsightsView: View {
 	@State var period: PeriodComponent = .day
 	@State var configurations: [CKEDataSeriesConfiguration] = []
 	@State var sortedTaskIDs: [String: Int] = [:]
+    @State private var riskLevelText = "UNKNOWN"
+    @State private var planRecommendationText = "Complete surveys to generate a personalized plan."
+    @State private var riskUpdatedAtText = ""
 
     var body: some View {
 		NavigationStack {
-			dateIntervalSegmentView
-				.padding()
 			ScrollView {
 				VStack {
+                    riskSummaryCard
+
+                    dateIntervalSegmentView
+                        .padding(.bottom, 8)
+
 					if orderedEvents.isEmpty {
 						Text("No task data yet. Complete tasks to see insights.")
 							.foregroundColor(.secondary)
@@ -84,6 +92,9 @@ struct InsightsView: View {
 				events.query.taskIDs = taskIDs
 				events.query.dateInterval = eventQueryInterval
 				setupChartPropertiesForSegmentSelection(intervalSelected)
+                Task {
+                    await refreshRiskSummary()
+                }
 			}
 #if os(iOS)
 			.onChange(of: intervalSelected) { _, intervalSegmentValue in
@@ -95,6 +106,39 @@ struct InsightsView: View {
 			}
 #endif
 		}
+    }
+
+    private var riskSummaryCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Current Risk Level: \(riskLevelText)")
+                .font(.headline)
+                .foregroundColor(riskColor)
+            Text(planRecommendationText)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            if !riskUpdatedAtText.isEmpty {
+                Text(riskUpdatedAtText)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(riskColor.opacity(0.12))
+        .cornerRadius(12)
+    }
+
+    private var riskColor: Color {
+        switch riskLevelText {
+        case "RED":
+            return .red
+        case "YELLOW":
+            return .orange
+        case "GREEN":
+            return .green
+        default:
+            return .gray
+        }
     }
 
 	private var orderedEvents: [CareStoreFetchedResult<OCKAnyEvent>] {
@@ -229,11 +273,36 @@ struct InsightsView: View {
 		return sortedTaskIDs
 	}
 
+    private func refreshRiskSummary() async {
+        do {
+            let user = try await User.current()
+            let summaries = user.surveyResponseSummaries ?? [:]
+            riskLevelText = (summaries["bpRiskLevel"] ?? "unknown").uppercased()
+            planRecommendationText = summaries["bpPlanRecommendation"]
+                ?? "Complete surveys to generate a personalized plan."
+
+            if let updatedAtString = summaries["bpRiskUpdatedAt"],
+               let updatedAt = ISO8601DateFormatter().date(from: updatedAtString) {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .medium
+                formatter.timeStyle = .short
+                riskUpdatedAtText = "Updated: \(formatter.string(from: updatedAt))"
+            } else {
+                riskUpdatedAtText = ""
+            }
+        } catch {
+            riskLevelText = "UNKNOWN"
+            planRecommendationText = "Could not load risk summary."
+            riskUpdatedAtText = ""
+        }
+    }
+
 	static func query() -> OCKEventQuery {
 		let query = OCKEventQuery(dateInterval: .init())
 		return query
 	}
 }
+// swiftlint:enable type_body_length
 
 #Preview {
     InsightsView()

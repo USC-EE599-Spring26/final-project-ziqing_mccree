@@ -50,6 +50,12 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: "Random Survey",
+            style: .plain,
+            target: self,
+            action: #selector(presentRandomSurvey)
+        )
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .refresh,
             target: self,
@@ -149,6 +155,46 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         }
     }
 
+    @objc private func presentRandomSurvey() {
+        Task {
+            let today = Date()
+            var query = OCKTaskQuery(for: today)
+            query.excludesTasksWithNoEvents = false
+            query.ids = AppTaskID.surveyTaskIDs
+
+            do {
+                let tasks = try await store.fetchAnyTasks(query: query)
+                let surveyTasks = tasks.compactMap { $0 as? OCKTask }
+                    .filter { $0.card == .survey && !($0.surveySteps?.isEmpty ?? true) }
+                guard let randomSurvey = surveyTasks.randomElement() else {
+                    showNoSurveyAlert()
+                    return
+                }
+
+                let eventQuery = OCKEventQuery(for: today)
+                guard let surveyVC = researchSurveyViewController(query: eventQuery, task: randomSurvey) else {
+                    showNoSurveyAlert()
+                    return
+                }
+                surveyVC.title = randomSurvey.title ?? "Survey"
+                navigationController?.pushViewController(surveyVC, animated: true)
+            } catch {
+                Logger.feed.error("Failed to load random survey: \(error, privacy: .public)")
+                showNoSurveyAlert()
+            }
+        }
+    }
+
+    private func showNoSurveyAlert() {
+        let alert = UIAlertController(
+            title: "No Survey Available",
+            message: "Could not find a survey task for today.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+
     @objc private func reloadView(_ notification: Notification? = nil) {
         guard !isReloadingView else { return }
         isReloadingView = true
@@ -202,6 +248,9 @@ private extension CareViewController {
         Task {
             let tasks = await self.fetchTasks(on: date)
             appendTasks(tasks, to: listViewController, date: date)
+            if let ockStore = store as? OCKStore {
+                await ockStore.persistLatestSurveySummariesToCurrentUser()
+            }
         }
     }
 
@@ -210,7 +259,8 @@ private extension CareViewController {
         query.excludesTasksWithNoEvents = false
         do {
             let tasks = try await store.fetchAnyTasks(query: query)
-            return filterOutDemoTasks(tasks)
+            let filtered = filterOutDemoTasks(tasks)
+            return await riskAdjustedTasks(filtered)
         } catch {
             print("❌ fetchTasks error=\(error)")
             Logger.feed.error("Could not fetch tasks: \(error, privacy: .public)")
@@ -226,10 +276,15 @@ private extension CareViewController {
         let query = OCKEventQuery(for: date)
 
         // Prefer stored card type for OCKTask (custom + hypertension tasks).
-        if let ockTask = task as? OCKTask,
-           let cards = makeControllersForCardType(task: ockTask, query: query),
-           !cards.isEmpty {
-            return cards
+        if let ockTask = task as? OCKTask {
+            if ockTask.card == .survey,
+               let surveyController = researchSurveyViewController(query: query, task: ockTask) {
+                return [surveyController]
+            }
+            if let cards = makeControllersForCardType(task: ockTask, query: query),
+               !cards.isEmpty {
+                return cards
+            }
         }
 
         switch task.id {
@@ -382,6 +437,67 @@ private extension CareViewController {
         }
         #endif
         self.isLoading = false
+    }
+
+    func riskAdjustedTasks(_ tasks: [any OCKAnyTask]) async -> [any OCKAnyTask] {
+        do {
+            let user = try await User.current()
+            let levelRaw = user.surveyResponseSummaries?["bpRiskLevel"] ?? HypertensionRiskLevel.green.rawValue
+            let level = HypertensionRiskLevel(rawValue: levelRaw) ?? .green
+            let rank = riskRankMap(for: level)
+
+            return tasks.sorted { left, right in
+                let leftRank = rank[left.id] ?? 1000
+                let rightRank = rank[right.id] ?? 1000
+                if leftRank == rightRank {
+                    return left.id < right.id
+                }
+                return leftRank < rightRank
+            }
+        } catch {
+            return tasks
+        }
+    }
+
+    func riskRankMap(for level: HypertensionRiskLevel) -> [String: Int] {
+        let orderedIDs: [String]
+        switch level {
+        case .red:
+            orderedIDs = [
+                AppTaskID.bpMedicationAM,
+                AppTaskID.bpMedicationPM,
+                AppTaskID.bpMeasurement,
+                AppTaskID.bpMedicationCheckinSurvey,
+                AppTaskID.bpSymptomsSurvey,
+                AppTaskID.bpLifestyleSurvey,
+                AppTaskID.lowSodiumCheck,
+                AppTaskID.exercise
+            ]
+        case .yellow:
+            orderedIDs = [
+                AppTaskID.bpMedicationAM,
+                AppTaskID.bpMedicationPM,
+                AppTaskID.bpMeasurement,
+                AppTaskID.bpMedicationCheckinSurvey,
+                AppTaskID.bpSymptomsSurvey,
+                AppTaskID.lowSodiumCheck,
+                AppTaskID.exercise,
+                AppTaskID.bpLifestyleSurvey
+            ]
+        case .green:
+            orderedIDs = [
+                AppTaskID.bpMedicationAM,
+                AppTaskID.bpMedicationPM,
+                AppTaskID.bpMeasurement,
+                AppTaskID.lowSodiumCheck,
+                AppTaskID.exercise,
+                AppTaskID.bpMedicationCheckinSurvey,
+                AppTaskID.bpSymptomsSurvey,
+                AppTaskID.bpLifestyleSurvey
+            ]
+        }
+
+        return Dictionary(uniqueKeysWithValues: orderedIDs.enumerated().map { ($0.element, $0.offset) })
     }
 }
 

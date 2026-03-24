@@ -43,6 +43,9 @@ enum AppTaskID {
     static var ordered: [String] {
         [bpMedicationAM, bpMedicationPM, bpMeasurement, lowSodiumCheck, exercise]
     }
+    static var surveyTaskIDs: [String] {
+        [bpMedicationCheckinSurvey, bpSymptomsSurvey, bpLifestyleSurvey]
+    }
     static let doxylamine = "doxylamine"
     static let nausea = "nausea"
     static let kegels = "kegels"
@@ -54,5 +57,8 @@ enum AppTaskID {
     static let bpMeasurement  = "bp_measure"
     static let lowSodiumCheck = "low_sodium_check"
     static let exercise = "exercise"
+    static let bpMedicationCheckinSurvey = "bp_medication_checkin_survey"
+    static let bpSymptomsSurvey = "bp_symptoms_survey"
+    static let bpLifestyleSurvey = "bp_lifestyle_survey"
 
 }
