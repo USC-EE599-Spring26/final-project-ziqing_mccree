@@ -166,7 +166,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
             do {
                 let tasks = try await store.fetchAnyTasks(query: query)
-                let surveyTasks = tasks.compactMap { $0 as? OCKTask }
+                let surveyTasks: [OCKTask] = tasks.compactMap { $0 }
                     .filter { $0.card == .survey && !($0.surveySteps?.isEmpty ?? true) }
                 guard let randomSurvey = surveyTasks.randomElement() else {
                     showNoSurveyAlert()
