@@ -15,6 +15,7 @@ enum TaskID {
     static let kegels = "kegels"
     static let steps = "steps"
     static let ovulationTestResult = "ovulationTestResult"
+    static let onboarding = "onboarding"
 
     static var ordered: [String] {
         orderedObjective + orderedSubjective
@@ -31,4 +32,29 @@ enum TaskID {
     static var orderedWatchOS: [String] {
         [ Self.doxylamine, Self.kegels, Self.stretch ]
     }
+
+    /// Hypertension task IDs for Insights tab (matches OCKStore.populateDefaultCarePlansTasksContacts).
+    static var orderedHypertension: [String] {
+        AppTaskID.ordered
+    }
+}
+enum AppTaskID {
+    static var ordered: [String] {
+        [bpMedicationAM, bpMedicationPM, bpMeasurement, lowSodiumCheck, exercise, rangeOfMotion]
+    }
+    static let doxylamine = "doxylamine"
+    static let nausea = "nausea"
+    static let kegels = "kegels"
+    static let stretch = "stretch"
+    static let steps = "steps" // some sample projects use this
+
+    static let bpMedicationAM = "bp_med_am"
+    static let bpMedicationPM = "bp_med_pm"
+    static let bpMeasurement  = "bp_measure"
+    static let lowSodiumCheck = "low_sodium_check"
+    static let exercise = "exercise"
+    /// Gentle mobility; hypertension-prevention theme.
+    static let rangeOfMotion = "range_of_motion"
+    static let onboarding = "onboarding"
+
 }

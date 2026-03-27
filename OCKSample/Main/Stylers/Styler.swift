@@ -6,19 +6,20 @@
 //  Copyright © 2021 Network Reconnaissance Lab. All rights reserved.
 //
 
-import CareKitUI
+@preconcurrency import CareKitUI
 
+@MainActor
 struct Styler: OCKStyler {
-    var color: OCKColorStyler {
+    nonisolated var color: OCKColorStyler {
         ColorStyler()
     }
-    var dimension: OCKDimensionStyler {
+    nonisolated var dimension: OCKDimensionStyler {
         DimensionStyle()
     }
-    var animation: OCKAnimationStyler {
+    nonisolated var animation: OCKAnimationStyler {
         AnimationStyle()
     }
-    var appearance: OCKAppearanceStyler {
+    nonisolated var appearance: OCKAppearanceStyler {
         AppearanceStyle()
     }
 }
