@@ -28,16 +28,17 @@ struct LoginView: View {
     @State var firstName: String = ""
     @State var lastName: String = ""
     @State var signupLoginSegmentValue = 0
+    @State var email: String = ""
 
     var body: some View {
         VStack {
             // Change the title to the name of your application
-            Text("APP_NAME")
+            Text("ALL4HEALTH")
                 .font(.largeTitle)
                 .foregroundColor(.white)
                 .padding()
             // Change this image to something that represents your application
-            Image("exercise.jpg")
+            Image("HealthLogo")
                 .resizable()
                 .frame(width: 150, height: 150, alignment: .center)
                 .clipShape(Circle())
@@ -73,6 +74,11 @@ struct LoginView: View {
 
                 switch signupLoginSegmentValue {
                 case 1:
+                    TextField("EMAIL", text: $email)
+                                            .padding()
+                                            .background(.white)
+                                            .cornerRadius(20.0)
+                                            .shadow(radius: 10.0, x: 20, y: 10)
                     TextField("GIVEN_NAME", text: $firstName)
                         .padding()
                         .background(.white)
@@ -99,19 +105,20 @@ struct LoginView: View {
                 case 1:
                     Task {
                         await viewModel.signup(
-							.patient,
-							username: usersname,
-							password: password,
-							firstName: firstName,
-							lastName: lastName
-						)
+                            .patient,
+                            username: usersname,
+                            password: password,
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: email
+                        )
                     }
                 default:
                     Task {
                         await viewModel.login(
-							username: usersname,
-							password: password
-						)
+                            username: usersname,
+                            password: password
+                        )
                     }
                 }
             }, label: {
@@ -133,22 +140,25 @@ struct LoginView: View {
             .background(Color(.green))
             .cornerRadius(15)
 
-            Button(action: {
-                Task {
-                    await viewModel.loginAnonymously()
+            Button(
+                action: {
+                    Task {
+                        await viewModel.loginAnonymously()
+                    }
+                },
+                label: {
+                    switch signupLoginSegmentValue {
+                    case 0:
+                        Text("LOGIN_ANONYMOUSLY")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(width: 300)
+                    default:
+                        EmptyView()
+                    }
                 }
-            }, label: {
-                switch signupLoginSegmentValue {
-                case 0:
-                    Text("LOGIN_ANONYMOUSLY")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 300)
-                default:
-                    EmptyView()
-                }
-            })
+            )
             .background(Color(.lightGray))
             .cornerRadius(15)
 
@@ -163,9 +173,9 @@ struct LoginView: View {
             LinearGradient(
                 gradient: Gradient(
                     colors: [
-                        Color(tintColorFlip),
-                        Color.accentColor
-					]
+                        Color("BrandPurpleLight"),
+                        Color("BrandBlueLight")
+                    ]
                 ),
                 startPoint: .top,
                 endPoint: .bottom

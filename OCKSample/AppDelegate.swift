@@ -52,10 +52,10 @@ final class AppDelegate: UIResponder, ObservableObject {
             self.objectWillChange.send()
         }
     }
-	@Published private(set) var store: OCKStore! = OCKStore(
-		name: Constants.noCareStoreName,
-		type: .inMemory
-	)
+    @Published private(set) var store: OCKStore! = OCKStore(
+        name: isSyncingWithRemote ? Constants.iOSParseCareStoreName : Constants.iOSLocalCareStoreName,
+        type: .onDisk()
+    )
     private(set) var healthKitStore: OCKHealthKitPassthroughStore! {
 		get {
 			return state.withLock { $0.healthKitStore }
@@ -183,4 +183,30 @@ final class AppDelegate: UIResponder, ObservableObject {
             throw error
         }
     }
+
+    #if DEBUG
+    func debugReseedIfNeeded() async {
+        let defaults = UserDefaults.standard
+        let key = "ForceReseedHypertension"
+        if defaults.object(forKey: key) == nil {
+            defaults.set(true, forKey: key)
+        }
+        guard defaults.bool(forKey: key) else {
+            return
+        }
+
+        do {
+            Logger.utility.info("DEBUG reseed: populating hypertension demo data")
+            try await store.populateDefaultCarePlansTasksContacts()
+
+            let today = Date()
+            var query = OCKTaskQuery(for: today)
+            query.excludesTasksWithNoEvents = false
+            let tasks = try await store.fetchAnyTasks(query: query)
+            Logger.utility.info("DEBUG reseed complete. Tasks available for today: \(tasks.count)")
+        } catch {
+            Logger.utility.error("DEBUG reseed failed: \(error)")
+        }
+    }
+    #endif
 }

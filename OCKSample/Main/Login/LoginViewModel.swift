@@ -13,6 +13,7 @@ import ParseSwift
 import os.log
 import WatchConnectivity
 
+// swiftlint:disable function_parameter_count
 @MainActor
 class LoginViewModel: ObservableObject {
 
@@ -137,9 +138,14 @@ class LoginViewModel: ObservableObject {
 			value: daysInThePastToGenerateSampleData,
 			to: currentDate
 		)! : currentDate
-        try await appDelegate.store.populateDefaultCarePlansTasksContacts(
+        /*try await appDelegate.store.populateDefaultCarePlansTasksContacts(
 			startDate: startDate
-		)
+		)*/
+        if appDelegate.store.name != Constants.noCareStoreName {
+            try await appDelegate.store.populateDefaultCarePlansTasksContacts(startDate: Date())
+        } else {
+            print("Skip populate because store is noCareStoreName")
+        }
         try await appDelegate.healthKitStore.populateDefaultHealthKitTasks(
 			startDate: startDate
 		)
@@ -165,14 +171,16 @@ class LoginViewModel: ObservableObject {
      - parameter password: The password the person signing up.
      - parameter firstName: The first name of the person signing up.
      - parameter lastName: The last name of the person signing up.
+     - parameter email: The email of the person signing up.
     */
     func signup(
-		_ type: UserType,
-		username: String,
-		password: String,
-		firstName: String,
-		lastName: String
-	) async {
+          _ type: UserType,
+          username: String,
+          password: String,
+          firstName: String,
+          lastName: String,
+          email: String
+      ) async {
         do {
             guard try await PCKUtility.isServerAvailable() else {
                 Logger.login.error("Server health is not \"ok\"")
@@ -182,6 +190,7 @@ class LoginViewModel: ObservableObject {
             // Set any properties you want saved on the user befor logging in.
             newUser.username = username.lowercased()
             newUser.password = password
+            newUser.email = email
             let user = try await newUser.signup()
             Logger.login.info("Parse signup successful: \(user)")
             let patient = try await savePatientAfterSignUp(type,
