@@ -15,6 +15,7 @@ enum TaskID {
     static let kegels = "kegels"
     static let steps = "steps"
     static let ovulationTestResult = "ovulationTestResult"
+    static let onboarding = "onboarding"
 
     static var ordered: [String] {
         orderedObjective + orderedSubjective
@@ -37,10 +38,9 @@ enum TaskID {
         AppTaskID.ordered
     }
 }
-
 enum AppTaskID {
     static var ordered: [String] {
-        [bpMedicationAM, bpMedicationPM, bpMeasurement, lowSodiumCheck, exercise]
+        [bpMedicationAM, bpMedicationPM, bpMeasurement, lowSodiumCheck, exercise, rangeOfMotion]
     }
     static let doxylamine = "doxylamine"
     static let nausea = "nausea"
@@ -53,5 +53,8 @@ enum AppTaskID {
     static let bpMeasurement  = "bp_measure"
     static let lowSodiumCheck = "low_sodium_check"
     static let exercise = "exercise"
+    /// Gentle mobility; hypertension-prevention theme.
+    static let rangeOfMotion = "range_of_motion"
+    static let onboarding = "onboarding"
 
 }
