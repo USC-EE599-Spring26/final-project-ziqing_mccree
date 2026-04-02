@@ -151,14 +151,9 @@ extension OCKStore {
         // ===== Hypertension default tasks =====
 
         // Times
-        let medAMTime = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: aFewDaysAgo)!
         let medPMTime = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: aFewDaysAgo)!
         let bpTime    = Calendar.current.date(bySettingHour: 8, minute: 30, second: 0, of: aFewDaysAgo)!
         let exerciseTime = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: aFewDaysAgo)!
-
-        let scheduleMedAM = OCKSchedule(composing: [
-            OCKScheduleElement(start: medAMTime, end: nil, interval: DateComponents(day: 1))
-        ])
 
         let scheduleMedPM = OCKSchedule(composing: [
             OCKScheduleElement(start: medPMTime, end: nil, interval: DateComponents(day: 1))
@@ -185,13 +180,13 @@ extension OCKStore {
 
         var medAM = OCKTask(
             id: AppTaskID.bpMedicationAM,
-            title: "Take Blood Pressure Medication (AM)",
+            title: "Hypertension Check-In",
             carePlanUUID: nil,
-            schedule: scheduleMedAM
+            schedule: scheduleAnytime
         )
-        medAM.instructions = "Take your morning blood pressure medication as prescribed."
-        medAM.asset = "pills.fill"
-        medAM.card = .button
+        medAM.instructions = "Complete a short daily check-in about medication adherence and symptoms."
+        medAM.asset = "checklist"
+        medAM.card = .instruction
         medAM.impactsAdherence = true
 
         var medPM = OCKTask(
@@ -239,13 +234,52 @@ extension OCKStore {
         exercise.card = .button
         exercise.impactsAdherence = true
 
+        var rangeOfMotion = OCKTask(
+            id: AppTaskID.rangeOfMotion,
+            title: "Lower-Body Range of Motion Check",
+            carePlanUUID: nil,
+            schedule: scheduleAnytime
+        )
+        rangeOfMotion.instructions = """
+        Simulate a gentle lower-body motion check and review movement results with simple self-report feedback.
+        """
+        rangeOfMotion.asset = "figure.walk"
+        rangeOfMotion.card = .instruction
+        rangeOfMotion.impactsAdherence = false
+
+        let onboardSchedule = OCKSchedule.dailyAtTime(
+            hour: 0,
+            minutes: 0,
+            start: aFewDaysAgo,
+            end: nil,
+            text: "Task Due!",
+            duration: .allDay
+        )
+
+        var onboardTask = OCKTask(
+            id: TaskID.onboarding,
+            title: "Hypertension Onboarding",
+            carePlanUUID: nil,
+            schedule: onboardSchedule
+        )
+
+        onboardTask.instructions = """
+        Tap this card or use Complete to start hypertension onboarding: program enrollment, instructions, \
+        consent signature, and blood pressure–related Health permissions. Until you finish, other daily tasks \
+        stay hidden.
+        """
+        onboardTask.asset = "heart.text.square.fill"
+        onboardTask.card = .instruction
+        onboardTask.impactsAdherence = false
         _ = try await addTasksIfNotPresent(
             [
                 medAM,
                 medPM,
                 measureBP,
                 lowSodium,
-                exercise
+                exercise,
+                rangeOfMotion,
+                onboardTask
             ]
         )
 
