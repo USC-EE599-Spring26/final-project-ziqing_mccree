@@ -67,27 +67,27 @@ extension CareViewController {
         #if canImport(UIKit) && canImport(CareKitUI)
         switch cardType {
         case .instruction:
-            let viewController = OCKInstructionsTaskViewController(query: taskQuery, store: store)
+            let viewController = OCKInstructionsTaskViewController(query: taskQuery, store: appStore)
             return [viewController]
 
         case .simple:
-            let viewController = OCKSimpleTaskViewController(query: taskQuery, store: store)
+            let viewController = OCKSimpleTaskViewController(query: taskQuery, store: appStore)
             return [viewController]
 
         case .checklist:
-            let viewController = OCKChecklistTaskViewController(query: taskQuery, store: store)
+            let viewController = OCKChecklistTaskViewController(query: taskQuery, store: appStore)
             return [viewController]
 
         case .button:
-            let viewController = OCKButtonLogTaskViewController(query: taskQuery, store: store)
+            let viewController = OCKButtonLogTaskViewController(query: taskQuery, store: appStore)
             return [viewController]
 
         case .grid:
-            let viewController = OCKSimpleTaskViewController(query: taskQuery, store: store)
+            let viewController = OCKSimpleTaskViewController(query: taskQuery, store: appStore)
             return [viewController]
 
         case .numericProgress:
-            let viewController = OCKSimpleTaskViewController(query: taskQuery, store: store)
+            let viewController = OCKSimpleTaskViewController(query: taskQuery, store: appStore)
             return [viewController]
 
         case .labeledValue, .link, .featured:

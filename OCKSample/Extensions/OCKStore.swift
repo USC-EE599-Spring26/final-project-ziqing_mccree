@@ -239,15 +239,59 @@ extension OCKStore {
         exercise.card = .button
         exercise.impactsAdherence = true
 
+        var rangeOfMotion = OCKTask(
+            id: AppTaskID.rangeOfMotion,
+            title: "Raise Arm 4 Times",
+            carePlanUUID: nil,
+            schedule: scheduleAnytime
+        )
+        rangeOfMotion.instructions = """
+        Tap the card to open guided steps. Slowly raise your arm and lower it back down; repeat 4 times. This \
+        supports relaxation and healthy blood pressure prevention. Stop if you feel dizzy or uncomfortable.
+        """
+        rangeOfMotion.asset = "figure.flexibility"
+        rangeOfMotion.card = .instruction
+        rangeOfMotion.impactsAdherence = false
+
+        let onboardSchedule = OCKSchedule.dailyAtTime(
+            hour: 0,
+            minutes: 0,
+            start: aFewDaysAgo,
+            end: nil,
+            text: "Task Due!",
+            duration: .allDay
+        )
+
+        var onboardTask = OCKTask(
+            id: TaskID.onboarding,
+            title: "Hypertension Onboarding",
+            carePlanUUID: nil,
+            schedule: onboardSchedule
+        )
+
+        onboardTask.instructions = """
+        Tap this card or use Complete to start hypertension onboarding: program enrollment, instructions, \
+        consent signature, and blood pressure–related Health permissions. Until you finish, other daily tasks \
+        stay hidden.
+        """
+        onboardTask.asset = "heart.text.square.fill"
+        onboardTask.card = .instruction
+        onboardTask.impactsAdherence = false
         _ = try await addTasksIfNotPresent(
             [
                 medAM,
                 medPM,
                 measureBP,
                 lowSodium,
-                exercise
+                exercise,
+                rangeOfMotion,
+                onboardTask
             ]
         )
+        medAM.instructions = "Take your morning blood pressure medication as prescribed."
+        medAM.asset = "pills.fill"
+        medAM.card = .button
+        medAM.impactsAdherence = true
 
         var todayQuery = OCKTaskQuery(for: today)
         todayQuery.excludesTasksWithNoEvents = false

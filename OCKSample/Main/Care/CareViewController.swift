@@ -35,9 +35,13 @@ import CareKitUI
 import os.log
 import SwiftUI
 import UIKit
+@preconcurrency import ResearchKit
+@preconcurrency import ResearchKitUI
 
 @MainActor
 final class CareViewController: OCKDailyPageViewController, @unchecked Sendable {
+
+    var appStore: OCKAnyStoreProtocol { AppDelegateKey.defaultValue!.store }
 
 	private var isSyncing = false
 	private var isLoading = false
@@ -124,7 +128,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
         isSyncing = true
 
-        AppDelegateKey.defaultValue?.store.synchronize { [weak self] error in
+        AppDelegateKey.defaultValue?.store.synchronize { [weak self] (error: Error?) in
             let errorString = error?.localizedDescription ?? "Successful sync with remote!"
             Logger.feed.info("\(errorString)")
 
@@ -173,23 +177,6 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         fetchAndDisplayTasks(on: listViewController, for: date)
     }
 
-    private func isSameDay(as date: Date) -> Bool {
-        Calendar.current.isDate(
-            date,
-            inSameDayAs: Date()
-        )
-    }
-
-    private func modifyDateIfNeeded(_ date: Date) -> Date {
-        guard date < .now else {
-            return date
-        }
-        guard !isSameDay(as: date) else {
-            return .now
-        }
-        return date.endOfDay
-    }
-
     private func fetchAndDisplayTasks(
         on listViewController: OCKListViewController,
         for date: Date
@@ -202,10 +189,13 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
     private func fetchTasks(on date: Date) async -> [any OCKAnyTask] {
         var query = OCKTaskQuery(for: date)
-        query.excludesTasksWithNoEvents = false
+        let onboardingDone = UserDefaults.standard.bool(forKey: Constants.onboardingCompletedKey)
+        // Until onboarding is finished, include tasks without events so the gate task always appears.
+        query.excludesTasksWithNoEvents = onboardingDone
         do {
-            let tasks = try await store.fetchAnyTasks(query: query)
-            return filterOutDemoTasks(tasks)
+            let tasks = try await appStore.fetchAnyTasks(query: query)
+            let filtered = filterOutDemoTasks(tasks)
+            return applyOnboardingGate(filtered)
         } catch {
             print("❌ fetchTasks error=\(error)")
             Logger.feed.error("Could not fetch tasks: \(error, privacy: .public)")
@@ -219,6 +209,19 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
     ) -> [UIViewController]? {
 
         let query = OCKEventQuery(for: date)
+
+        #if os(iOS)
+        if task.id == TaskID.onboarding {
+            var taskQuery = query
+            taskQuery.taskIDs = [TaskID.onboarding]
+            return [OnboardingGateViewController(store: appStore, eventQuery: taskQuery)]
+        }
+        if task.id == AppTaskID.rangeOfMotion {
+            var taskQuery = query
+            taskQuery.taskIDs = [AppTaskID.rangeOfMotion]
+            return [RaiseArmGateViewController(store: appStore, eventQuery: taskQuery)]
+        }
+        #endif
 
         // Prefer stored card type for OCKTask (custom + hypertension tasks).
         if let ockTask = task as? OCKTask,
@@ -271,7 +274,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
             // This is a UIKit based card.
             let card = OCKChecklistTaskViewController(
                 query: query,
-                store: self.store
+                store: appStore
             )
 
             return [card]
@@ -287,7 +290,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
              */
             let nauseaCard = OCKButtonLogTaskViewController(
                 query: query,
-                store: self.store
+                store: appStore
             )
 
             return [nauseaCard]
@@ -344,6 +347,204 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         }
         #endif
 		self.isLoading = false
+    }
+}
+
+private extension CareViewController {
+    func isSameDay(as date: Date) -> Bool {
+        Calendar.current.isDate(
+            date,
+            inSameDayAs: Date()
+        )
+    }
+
+    func modifyDateIfNeeded(_ date: Date) -> Date {
+        guard date < .now else {
+            return date
+        }
+        guard !isSameDay(as: date) else {
+            return .now
+        }
+        return date.endOfDay
+    }
+}
+
+/// Hypertension onboarding CareKit card; completing the card (or tapping the card) launches ResearchKit onboarding.
+final class OnboardingGateViewController: OCKInstructionsTaskViewController {
+
+    private var isResearchKitPresented = false
+
+    init(store: OCKAnyStoreProtocol, eventQuery: OCKEventQuery) {
+        var onboardingQuery = eventQuery
+        onboardingQuery.taskIDs = [TaskID.onboarding]
+        super.init(query: onboardingQuery, store: store)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func taskView(
+        _ taskView: UIView & OCKTaskDisplayable,
+        didCompleteEvent isComplete: Bool,
+        at indexPath: IndexPath,
+        sender: Any?
+    ) {
+        presentResearchKitFlowIfNeeded()
+    }
+
+    override func didSelectTaskView(_ taskView: UIView & OCKTaskDisplayable, eventIndexPath: IndexPath) {
+        presentResearchKitFlowIfNeeded()
+    }
+
+    private func presentResearchKitFlowIfNeeded() {
+        guard !isResearchKitPresented else { return }
+        isResearchKitPresented = true
+        let taskVC = ORKTaskViewController(task: Onboarding.task, taskRun: UUID())
+        taskVC.delegate = self
+        var presenter: UIViewController = self
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+        presenter.present(taskVC, animated: true)
+    }
+}
+
+/// Presents ResearchKit “Raise Arm 4 Times” and records completion on the CareKit event when finished.
+final class RaiseArmGateViewController: OCKInstructionsTaskViewController {
+
+    private var isResearchKitPresented = false
+    /// Retained because `OCKTaskViewController`’s `store` is `internal` to CareKit and not visible to subclasses.
+    private let eventStore: OCKAnyStoreProtocol
+
+    init(store: OCKAnyStoreProtocol, eventQuery: OCKEventQuery) {
+        self.eventStore = store
+        var raiseArmQuery = eventQuery
+        raiseArmQuery.taskIDs = [AppTaskID.rangeOfMotion]
+        super.init(query: raiseArmQuery, store: store)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func taskView(
+        _ taskView: UIView & OCKTaskDisplayable,
+        didCompleteEvent isComplete: Bool,
+        at indexPath: IndexPath,
+        sender: Any?
+    ) {
+        presentRaiseArmFlowIfNeeded()
+    }
+
+    override func didSelectTaskView(_ taskView: UIView & OCKTaskDisplayable, eventIndexPath: IndexPath) {
+        presentRaiseArmFlowIfNeeded()
+    }
+
+    private func presentRaiseArmFlowIfNeeded() {
+        guard !isResearchKitPresented else { return }
+        isResearchKitPresented = true
+        let taskVC = ORKTaskViewController(task: RaiseArmExercise.task, taskRun: UUID())
+        taskVC.delegate = self
+        var presenter: UIViewController = self
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+        presenter.present(taskVC, animated: true)
+    }
+
+    private func firstEventInViewModel() -> OCKAnyEvent? {
+        for section in viewModel {
+            if let event = section.first {
+                return event
+            }
+        }
+        return nil
+    }
+
+    private func markTodaysEventCompletedIfNeeded() {
+        guard let event = firstEventInViewModel() else {
+            postCareRefresh()
+            return
+        }
+        if event.outcome != nil {
+            postCareRefresh()
+            return
+        }
+        eventStore.fetchAnyEvent(
+            forTask: event.task,
+            occurrence: event.scheduleEvent.occurrence,
+            callbackQueue: .main
+        ) { [weak self] result in
+            guard let self else {
+                return
+            }
+            switch result {
+            case .failure:
+                Task { @MainActor [weak self] in self?.postCareRefresh() }
+            case .success(let fresh):
+                if let outcome = fresh.outcome {
+                    self.eventStore.deleteAnyOutcome(outcome) { _ in
+                        Task { @MainActor [weak self] in self?.postCareRefresh() }
+                    }
+                } else {
+                    let newOutcome = OCKOutcome(
+                        taskUUID: fresh.task.uuid,
+                        taskOccurrenceIndex: fresh.scheduleEvent.occurrence,
+                        values: [OCKOutcomeValue(true)]
+                    )
+                    self.eventStore.addAnyOutcome(newOutcome) { _ in
+                        Task { @MainActor [weak self] in self?.postCareRefresh() }
+                    }
+                }
+            }
+        }
+    }
+
+    private func postCareRefresh() {
+        NotificationCenter.default.post(
+            name: Notification.Name(rawValue: Constants.shouldRefreshView),
+            object: nil
+        )
+    }
+}
+
+extension RaiseArmGateViewController: ORKTaskViewControllerDelegate {
+
+    nonisolated func taskViewController(
+        _ taskViewController: ORKTaskViewController,
+        didFinishWith reason: ORKTaskFinishReason,
+        error: Error?
+    ) {
+        Task { @MainActor [weak self] in
+            self?.isResearchKitPresented = false
+            if reason == .completed {
+                self?.markTodaysEventCompletedIfNeeded()
+            }
+            taskViewController.dismiss(animated: true, completion: nil)
+        }
+    }
+}
+
+extension OnboardingGateViewController: ORKTaskViewControllerDelegate {
+
+    nonisolated func taskViewController(
+        _ taskViewController: ORKTaskViewController,
+        didFinishWith reason: ORKTaskFinishReason,
+        error: Error?
+    ) {
+        Task { @MainActor [weak self] in
+            self?.isResearchKitPresented = false
+            if reason == .completed {
+                UserDefaults.standard.set(true, forKey: Constants.onboardingCompletedKey)
+                Utility.requestHealthKitPermissions()
+                NotificationCenter.default.post(
+                    name: Notification.Name(rawValue: Constants.shouldRefreshView),
+                    object: nil
+                )
+            }
+            taskViewController.dismiss(animated: true, completion: nil)
+        }
     }
 }
 
