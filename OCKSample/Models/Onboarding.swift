@@ -104,7 +104,8 @@ struct Onboarding {
         let step = ORKInstructionStep(identifier: "requestPermissionsInfo")
         step.title = "Blood Pressure & Hypertension Health Access"
         step.text = """
-        iOS may next ask to share blood pressure–related Health data (for example cuff readings, heart rate, activity) \
+        iOS may next ask to share blood pressure–related Health data (for example \
+        cuff readings, heart rate, activity) \
         so this hypertension app can show trends alongside your blood pressure goals.
 
         You can change blood pressure data access later in Settings › Privacy › Health.
@@ -152,21 +153,125 @@ struct Onboarding {
     }
 }
 
-/// Guided arm raises for hypertension prevention (ResearchKit instruction flow; no motion sensors).
+/// Sensor-ready ROM demo: mock “fusion” values now; replace with `CMMotionManager` / attitude pipeline later.
 struct RaiseArmExercise {
     private init() {}
 
-    static var task: ORKOrderedTask {
-        let instruction = ORKInstructionStep(identifier: "raiseArmInstruction")
-        instruction.title = "Raise Arm 4 Times"
-        instruction.text = """
-        Slowly raise your arm and lower it back down. Repeat 4 times.
+    /// Mock output from a future motion pipeline (simulator-safe). Wire real estimates in one place when adding
+    /// sensors.
+    struct MockROMResult: Equatable {
+        var armElevationEstimateDegrees: Int
+        var movementCompleted: Bool
+        var repetitionCount: Int
 
-        This gentle movement supports relaxation and healthy blood pressure prevention.
-        """
-        let completion = ORKCompletionStep(identifier: "raiseArmCompletion")
-        completion.title = "Raise Arm 4 Times"
-        completion.text = "Tap Done to save this activity for today."
-        return ORKOrderedTask(identifier: AppTaskID.rangeOfMotion, steps: [instruction, completion])
+        static let sensorReadyDemo = MockROMResult(
+            armElevationEstimateDegrees: 42,
+            movementCompleted: true,
+            repetitionCount: 3
+        )
+    }
+
+    /// Post–tracking questionnaire only (instruction + mock tracking + results run in
+    /// `RangeOfMotionDemoFlowViewController`).
+    static var postMotionSurveyTask: ORKOrderedTask {
+        let effortChoices = [
+            ORKTextChoice(text: "Easy", value: "easy" as NSString),
+            ORKTextChoice(text: "Slightly difficult", value: "slightly_difficult" as NSString),
+            ORKTextChoice(text: "Moderate effort", value: "moderate_effort" as NSString),
+            ORKTextChoice(text: "Difficult", value: "difficult" as NSString)
+        ]
+        let effortStep = ORKQuestionStep(
+            identifier: "romEffortFeel",
+            title: "Movement",
+            question: "How did the movement feel today?",
+            answer: ORKTextChoiceAnswerFormat(style: .singleChoice, textChoices: effortChoices)
+        )
+
+        let discomfortChoices = [
+            ORKTextChoice(text: "No discomfort", value: "no_discomfort" as NSString),
+            ORKTextChoice(text: "Mild stiffness", value: "mild_stiffness" as NSString),
+            ORKTextChoice(text: "Mild discomfort", value: "mild_discomfort" as NSString),
+            ORKTextChoice(text: "Stopped early", value: "stopped_early" as NSString)
+        ]
+        let discomfortStep = ORKQuestionStep(
+            identifier: "romKneeLegDiscomfort",
+            title: "Comfort",
+            question: "Did you notice any discomfort in your knees or legs?",
+            answer: ORKTextChoiceAnswerFormat(style: .singleChoice, textChoices: discomfortChoices)
+        )
+
+        let repChoices = [
+            ORKTextChoice(text: "Yes", value: "yes" as NSString),
+            ORKTextChoice(text: "Partially", value: "partially" as NSString),
+            ORKTextChoice(text: "No", value: "no" as NSString)
+        ]
+        let repetitionStep = ORKQuestionStep(
+            identifier: "romRepetitionsCompleted",
+            title: "Completion",
+            question: "Were you able to complete all repetitions?",
+            answer: ORKTextChoiceAnswerFormat(style: .singleChoice, textChoices: repChoices)
+        )
+
+        let done = ORKCompletionStep(identifier: "romSurveyCompletion")
+        done.title = "Lower-Body Range of Motion"
+        done.text = "Tap Done to save this check and return to Care."
+
+        return ORKOrderedTask(
+            identifier: "\(AppTaskID.rangeOfMotion)_postMotion",
+            steps: [effortStep, discomfortStep, repetitionStep, done]
+        )
+    }
+
+    /// Kept for call sites that expect `RaiseArmExercise.task`; same as the post-motion survey.
+    static var task: ORKOrderedTask {
+        postMotionSurveyTask
+    }
+}
+
+/// Daily hypertension check-in (medication adherence, symptoms, overall wellness).
+struct HypertensionCheckIn {
+    private init() {}
+
+    static var task: ORKOrderedTask {
+        let medicationStep = ORKQuestionStep(
+            identifier: "checkInMedication",
+            title: "Medication",
+            question: "Did you take your blood pressure medication today?",
+            answer: ORKBooleanAnswerFormat(yesString: "Yes", noString: "No")
+        )
+
+        let symptomChoices = [
+            ORKTextChoice(text: "No symptoms", value: "none" as NSString),
+            ORKTextChoice(text: "Headache", value: "headache" as NSString),
+            ORKTextChoice(text: "Dizziness", value: "dizziness" as NSString),
+            ORKTextChoice(text: "Fatigue", value: "fatigue" as NSString)
+        ]
+        let symptomsStep = ORKQuestionStep(
+            identifier: "checkInSymptoms",
+            title: "Symptoms",
+            question: "Did you experience any symptoms today?",
+            answer: ORKTextChoiceAnswerFormat(style: .singleChoice, textChoices: symptomChoices)
+        )
+
+        let overallChoices = [
+            ORKTextChoice(text: "Good", value: "good" as NSString),
+            ORKTextChoice(text: "Okay", value: "okay" as NSString),
+            ORKTextChoice(text: "Not well", value: "not_well" as NSString)
+        ]
+        let overallStep = ORKQuestionStep(
+            identifier: "checkInOverall",
+            title: "Overall",
+            question: "How do you feel overall today?",
+            answer: ORKTextChoiceAnswerFormat(style: .singleChoice, textChoices: overallChoices)
+        )
+
+        let completion = ORKCompletionStep(identifier: "checkInCompletion")
+        completion.title = "Hypertension Check-In"
+        completion.text = "Tap Done to save your check-in for today."
+
+        return ORKOrderedTask(
+            identifier: AppTaskID.bpMedicationAM,
+            steps: [medicationStep, symptomsStep, overallStep, completion]
+        )
     }
 }

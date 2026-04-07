@@ -151,14 +151,9 @@ extension OCKStore {
         // ===== Hypertension default tasks =====
 
         // Times
-        let medAMTime = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: aFewDaysAgo)!
         let medPMTime = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: aFewDaysAgo)!
         let bpTime    = Calendar.current.date(bySettingHour: 8, minute: 30, second: 0, of: aFewDaysAgo)!
         let exerciseTime = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: aFewDaysAgo)!
-
-        let scheduleMedAM = OCKSchedule(composing: [
-            OCKScheduleElement(start: medAMTime, end: nil, interval: DateComponents(day: 1))
-        ])
 
         let scheduleMedPM = OCKSchedule(composing: [
             OCKScheduleElement(start: medPMTime, end: nil, interval: DateComponents(day: 1))
@@ -185,13 +180,13 @@ extension OCKStore {
 
         var medAM = OCKTask(
             id: AppTaskID.bpMedicationAM,
-            title: "Take Blood Pressure Medication (AM)",
+            title: "Hypertension Check-In",
             carePlanUUID: nil,
-            schedule: scheduleMedAM
+            schedule: scheduleAnytime
         )
-        medAM.instructions = "Take your morning blood pressure medication as prescribed."
-        medAM.asset = "pills.fill"
-        medAM.card = .button
+        medAM.instructions = "Complete a short daily check-in about medication adherence and symptoms."
+        medAM.asset = "checklist"
+        medAM.card = .instruction
         medAM.impactsAdherence = true
 
         var medPM = OCKTask(
@@ -241,15 +236,14 @@ extension OCKStore {
 
         var rangeOfMotion = OCKTask(
             id: AppTaskID.rangeOfMotion,
-            title: "Raise Arm 4 Times",
+            title: "Lower-Body Range of Motion Check",
             carePlanUUID: nil,
             schedule: scheduleAnytime
         )
         rangeOfMotion.instructions = """
-        Tap the card to open guided steps. Slowly raise your arm and lower it back down; repeat 4 times. This \
-        supports relaxation and healthy blood pressure prevention. Stop if you feel dizzy or uncomfortable.
+        Simulate a gentle lower-body motion check and review movement results with simple self-report feedback.
         """
-        rangeOfMotion.asset = "figure.flexibility"
+        rangeOfMotion.asset = "figure.walk"
         rangeOfMotion.card = .instruction
         rangeOfMotion.impactsAdherence = false
 
