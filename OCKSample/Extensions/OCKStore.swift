@@ -288,6 +288,70 @@ extension OCKStore {
                 onboardTask
             ]
         )
+        medAM.instructions = "Take your morning blood pressure medication as prescribed."
+        medAM.asset = "pills.fill"
+        medAM.card = .button
+        medAM.impactsAdherence = true
+
+        var medPM = OCKTask(
+            id: AppTaskID.bpMedicationPM,
+            title: "Take Blood Pressure Medication (PM)",
+            carePlanUUID: nil,
+            schedule: scheduleMedPM
+        )
+        medPM.instructions = "Take your evening blood pressure medication as prescribed."
+        medPM.asset = "pills.fill"
+        medPM.card = .button
+        medPM.impactsAdherence = true
+
+        var measureBP = OCKTask(
+            id: AppTaskID.bpMeasurement,
+            title: "Measure Blood Pressure",
+            carePlanUUID: nil,
+            schedule: scheduleBP
+        )
+        measureBP.instructions = "Measure your blood pressure and record the systolic/diastolic values."
+        measureBP.asset = "heart.text.square"
+        // 如果这里报错，就用 Xcode 自动补全选一个你项目里存在的 card case
+        measureBP.card = .numericProgress
+        measureBP.impactsAdherence = true
+
+        var lowSodium = OCKTask(
+            id: AppTaskID.lowSodiumCheck,
+            title: "Low-Sodium Diet Check",
+            carePlanUUID: nil,
+            schedule: scheduleAnytime
+        )
+        lowSodium.instructions = "Did you follow a low-sodium diet today? Tap to log."
+        lowSodium.asset = "fork.knife"
+        lowSodium.card = .grid
+        lowSodium.impactsAdherence = false
+
+        var exercise = OCKTask(
+            id: AppTaskID.exercise,
+            title: "Hypertension Exercise Session",
+            carePlanUUID: nil,
+            schedule: scheduleExercise
+        )
+        exercise.instructions = "Walk briskly for 20 minutes or do light cardio."
+        exercise.asset = "figure.walk"
+        exercise.card = .button
+        exercise.impactsAdherence = true
+
+        _ = try await addTasksIfNotPresent(
+            [
+                medAM,
+                medPM,
+                measureBP,
+                lowSodium,
+                exercise
+            ]
+        )
+
+        var todayQuery = OCKTaskQuery(for: today)
+        todayQuery.excludesTasksWithNoEvents = false
+        let todayTasks = try await fetchAnyTasks(query: todayQuery)
+        Logger.ockStore.info("Hypertension seeding complete. Tasks available for today: \(todayTasks.count)")
 
         var todayQuery = OCKTaskQuery(for: today)
         todayQuery.excludesTasksWithNoEvents = false
