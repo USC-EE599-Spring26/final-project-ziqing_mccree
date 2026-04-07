@@ -6,29 +6,27 @@
 //  Copyright © 2026 Network Reconnaissance Lab. All rights reserved.
 //
 
-import CareKitUI
+@preconcurrency import CareKitUI
 import UIKit
 
 struct DimensionStyle: OCKDimensionStyler {
     #if os(iOS)
-
-    var separatorHeight: CGFloat { 1.0 / UIScreen.main.scale }
-
+    nonisolated var separatorHeight: CGFloat { 1.0 / 3.0 }
     #endif
 
-    var lineWidth1: CGFloat { 20 }
-    var stackSpacing1: CGFloat { 8 }
+    nonisolated var lineWidth1: CGFloat { 20 }
+    nonisolated var stackSpacing1: CGFloat { 8 }
 
-    var imageHeight2: CGFloat { 40 }
-    var imageHeight1: CGFloat { 350 }
+    nonisolated var imageHeight2: CGFloat { 40 }
+    nonisolated var imageHeight1: CGFloat { 350 }
 
-    var pointSize3: CGFloat { 50 }
-    var pointSize2: CGFloat { 14 }
-    var pointSize1: CGFloat { 17 }
+    nonisolated var pointSize3: CGFloat { 50 }
+    nonisolated var pointSize2: CGFloat { 14 }
+    nonisolated var pointSize1: CGFloat { 17 }
 
-    var symbolPointSize5: CGFloat { 8 }
-    var symbolPointSize4: CGFloat { 12 }
-    var symbolPointSize3: CGFloat { 30 }
-    var symbolPointSize2: CGFloat { 20 }
-    var symbolPointSize1: CGFloat { 30 }
+    nonisolated var symbolPointSize5: CGFloat { 8 }
+    nonisolated var symbolPointSize4: CGFloat { 12 }
+    nonisolated var symbolPointSize3: CGFloat { 30 }
+    nonisolated var symbolPointSize2: CGFloat { 20 }
+    nonisolated var symbolPointSize1: CGFloat { 30 }
 }

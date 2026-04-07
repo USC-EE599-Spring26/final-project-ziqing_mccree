@@ -282,6 +282,10 @@ extension OCKStore {
                 onboardTask
             ]
         )
+        medAM.instructions = "Take your morning blood pressure medication as prescribed."
+        medAM.asset = "pills.fill"
+        medAM.card = .button
+        medAM.impactsAdherence = true
 
         var todayQuery = OCKTaskQuery(for: today)
         todayQuery.excludesTasksWithNoEvents = false

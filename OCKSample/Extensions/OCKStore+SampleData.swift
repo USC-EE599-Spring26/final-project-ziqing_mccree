@@ -91,7 +91,8 @@ extension OCKStore {
 
             case AppTaskID.bpMedicationAM,
                  AppTaskID.bpMedicationPM,
-                 AppTaskID.lowSodiumCheck:
+                 AppTaskID.lowSodiumCheck,
+                 AppTaskID.rangeOfMotion:
 
                 let randomBool: Bool = .random()
                 guard randomBool else { return nil }

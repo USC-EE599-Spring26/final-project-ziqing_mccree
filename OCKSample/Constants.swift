@@ -47,4 +47,7 @@ enum Constants {
     static let userTypeKey = "userType"
     static let appName = "ParseCareKitSample"
     static let card = "card"
+
+    /// `true` after user completes hypertension ResearchKit onboarding (Care gate).
+    static let onboardingCompletedKey = "onboardingCompleted"
 }

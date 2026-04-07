@@ -197,6 +197,7 @@ final class AppDelegate: UIResponder, ObservableObject {
 
         do {
             Logger.utility.info("DEBUG reseed: populating hypertension demo data")
+            UserDefaults.standard.set(false, forKey: Constants.onboardingCompletedKey)
             try await store.populateDefaultCarePlansTasksContacts()
 
             let today = Date()
