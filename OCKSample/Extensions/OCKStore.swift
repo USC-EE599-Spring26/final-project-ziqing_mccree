@@ -66,6 +66,8 @@ extension OCKStore {
         _ = try await addAnyCarePlans(carePlansNotInStore)
     }
 
+    #endif
+
     func addContactsIfNotPresent(_ contacts: [OCKContact]) async throws -> [OCKContact] {
         let contactIdsToAdd = contacts.compactMap { $0.id }
 
@@ -92,6 +94,7 @@ extension OCKStore {
         return addedContacts
     }
 
+    #if os(iOS)
     func populateCarePlans(patientUUID: UUID? = nil) async throws {
         let healthCarePlan = OCKCarePlan(
             id: CarePlanID.health.rawValue,
