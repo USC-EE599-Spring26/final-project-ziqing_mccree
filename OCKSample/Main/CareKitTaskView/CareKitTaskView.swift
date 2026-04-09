@@ -138,7 +138,7 @@ struct CareKitTaskView: View {
 				selectedCard = availableCards.first ?? .checklist
 			}
 		}
-		.onChange(of: selectedTaskKind) { _ in
+		.onChange(of: selectedTaskKind) {
 			if !availableCards.contains(selectedCard) {
 				selectedCard = availableCards.first ?? .checklist
 			}
