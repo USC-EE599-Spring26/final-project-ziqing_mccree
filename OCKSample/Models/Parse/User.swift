@@ -25,6 +25,7 @@ struct User: ParseUser {
     // Custom properties
     var lastTypeSelected: String?
     var userTypeUUIDs: [String: UUID]?
+    var hypertensionSeedVersion: Int?
 }
 
 // MARK: Default Implementation
@@ -38,6 +39,10 @@ extension User {
         if updated.shouldRestoreKey(\.userTypeUUIDs,
                                      original: object) {
             updated.userTypeUUIDs = object.userTypeUUIDs
+        }
+        if updated.shouldRestoreKey(\.hypertensionSeedVersion,
+                                     original: object) {
+            updated.hypertensionSeedVersion = object.hypertensionSeedVersion
         }
         return updated
     }

@@ -30,8 +30,15 @@ extension AppDelegate: UIApplicationDelegate {
                     _ = try await User.current()
                     Logger.appDelegate.info("User is already signed in...")
                     do {
-                        let uuid = try await Utility.getRemoteClockUUID()
-                        try? await setupRemotes(uuid: uuid)
+                        let remoteClock = try await Utility.prepareRemoteClockForCurrentSeed()
+                        if remoteClock.didRotateClock {
+                            Utility.resetStoresForHypertensionSeedRotation()
+                        }
+                        try await setupRemotes(uuid: remoteClock.uuid)
+                        if remoteClock.didRotateClock {
+                            try await Utility.seedHypertensionDataInCurrentStores()
+                        }
+                        await Utility.migrateHypertensionTasksIfNeeded()
                         parseRemote.automaticallySynchronizes = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                             // swiftlint:disable:next line_length
@@ -49,14 +56,9 @@ extension AppDelegate: UIApplicationDelegate {
                 // When syncing directly with watchOS, we do not care about login and need to setup remotes
                 do {
                     try await setupRemotes()
-                    /*try await store.populateDefaultCarePlansTasksContacts()*/
-                    if !isSyncingWithRemote {
-                        try await store.populateDefaultCarePlansTasksContacts()
-                    }
-                    try await healthKitStore.populateDefaultHealthKitTasks()
+                    await Utility.migrateHypertensionTasksIfNeeded()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         NotificationCenter.default.post(.init(name: Notification.Name(rawValue: Constants.requestSync)))
-                        Utility.requestHealthKitPermissions()
                     }
                 } catch {
                     Logger.appDelegate.error("""

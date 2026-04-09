@@ -1,21 +1,21 @@
 /*
  Copyright (c) 2019, Apple Inc. All rights reserved.
- 
+
  Redistribution and use in source and binary forms, with or without modification,
  are permitted provided that the following conditions are met:
- 
+
  1.  Redistributions of source code must retain the above copyright notice, this
  list of conditions and the following disclaimer.
- 
+
  2.  Redistributions in binary form must reproduce the above copyright notice,
  this list of conditions and the following disclaimer in the documentation and/or
  other materials provided with the distribution.
- 
+
  3. Neither the name of the copyright holder(s) nor the names of any contributors
  may be used to endorse or promote products derived from this software without
  specific prior written permission. No license is granted to the trademarks of
  the copyright holders even if such marks are included in this software.
- 
+
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -33,19 +33,23 @@ import CareKitEssentials
 import CareKitStore
 import CareKitUI
 import os.log
+#if canImport(ResearchKit) && canImport(ResearchKitUI)
+import ResearchKit
+import ResearchKitUI
+#endif
+import ResearchKitSwiftUI
 import SwiftUI
 import UIKit
-@preconcurrency import ResearchKit
-@preconcurrency import ResearchKitUI
 
 @MainActor
 final class CareViewController: OCKDailyPageViewController, @unchecked Sendable {
 
-    var appStore: OCKAnyStoreProtocol { AppDelegateKey.defaultValue!.store }
-
 	private var isSyncing = false
 	private var isLoading = false
-	private var isReloadingView = false
+	private var hasValidatedHypertensionSeed = false
+	private var pendingReload = false
+	private var taskLoadGeneration = 0
+	private let swiftUIPadding: CGFloat = 15
     private var style: Styler {
         CustomStylerKey.defaultValue
     }
@@ -89,7 +93,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         _ notification: Notification
     ) {
         guard let receivedInfo = notification.userInfo as? [String: Any],
-            let progress = receivedInfo[Constants.progressUpdate] as? Int else {
+              let progress = receivedInfo[Constants.progressUpdate] as? Int else {
             return
         }
 
@@ -102,7 +106,6 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 			)
 			self.navigationItem.rightBarButtonItem?.tintColor = self.view.tintColor
 
-			// Give sometime for the user to see 100
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
 				guard let self else { return }
 				self.navigationItem.rightBarButtonItem = UIBarButtonItem(
@@ -123,262 +126,56 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
     }
 
     @objc private func synchronizeWithRemote() {
-        // Only one sync at a time; ignore new requests while syncing.
-        guard !isSyncing else { return }
-
+        guard !isSyncing else {
+            return
+        }
         isSyncing = true
-
-        AppDelegateKey.defaultValue?.store.synchronize { [weak self] (error: Error?) in
+        AppDelegateKey.defaultValue?.store.synchronize { error in
             let errorString = error?.localizedDescription ?? "Successful sync with remote!"
             Logger.feed.info("\(errorString)")
-
             DispatchQueue.main.async { [weak self] in
 				guard let self else { return }
-
                 if error != nil {
                     self.navigationItem.rightBarButtonItem?.tintColor = .red
                 } else {
                     self.navigationItem.rightBarButtonItem?.tintColor = self.navigationItem.leftBarButtonItem?.tintColor
                 }
-
                 self.isSyncing = false
-
-                // Avoid infinite refresh loop: do not post shouldRefreshView from inside CareViewController.
-                // NotificationCenter.default.post(
-                //     .init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
-                // )
             }
         }
     }
 
     @objc private func reloadView(_ notification: Notification? = nil) {
-        guard !isReloadingView else { return }
-        isReloadingView = true
-        defer { isReloadingView = false }
-        guard !isLoading else { return }
+        guard !isLoading else {
+            pendingReload = true
+            return
+        }
         self.reload()
     }
 
-    /*
-     This will be called each time the selected date changes.
-     Use this as an opportunity to rebuild the content shown to the user.
-     */
     override func dailyPageViewController(
         _ dailyPageViewController: OCKDailyPageViewController,
         prepare listViewController: OCKListViewController,
         for date: Date
     ) {
         self.isLoading = true
+		taskLoadGeneration += 1
+		let generation = taskLoadGeneration
 
-        // Always call this method to ensure dates for
-        // queries are correct.
-        let date = modifyDateIfNeeded(date)
-
-        fetchAndDisplayTasks(on: listViewController, for: date)
+		Task {
+			let date = modifyDateIfNeeded(date)
+			await fetchAndDisplayTasks(on: listViewController, for: date, generation: generation)
+		}
     }
 
-    private func fetchAndDisplayTasks(
-        on listViewController: OCKListViewController,
-        for date: Date
-    ) {
-        Task {
-            let tasks = await self.fetchTasks(on: date)
-			appendTasks(tasks, to: listViewController, date: date)
-        }
-    }
-
-    private func fetchTasks(on date: Date) async -> [any OCKAnyTask] {
-        var query = OCKTaskQuery(for: date)
-        let onboardingDone = UserDefaults.standard.bool(forKey: Constants.onboardingCompletedKey)
-        // Until onboarding is finished, include tasks without events so the gate task always appears.
-        query.excludesTasksWithNoEvents = onboardingDone
-        do {
-            let tasks = try await appStore.fetchAnyTasks(query: query)
-            let filtered = filterOutDemoTasks(tasks)
-            return applyOnboardingGate(filtered)
-        } catch {
-            print("❌ fetchTasks error=\(error)")
-            Logger.feed.error("Could not fetch tasks: \(error, privacy: .public)")
-            return []
-        }
-    }
-
-    private func taskViewControllers(
-        _ task: any OCKAnyTask,
-        on date: Date
-    ) -> [UIViewController]? {
-
-        let query = OCKEventQuery(for: date)
-
-        #if os(iOS)
-        if let special = viewControllersForSpecialTaskIDs(task: task, query: query) {
-            return special
-        }
-        #endif
-
-        // Prefer stored card type for OCKTask (custom + hypertension tasks).
-        if let ockTask = task as? OCKTask,
-           let cards = makeControllersForCardType(task: ockTask, query: query),
-           !cards.isEmpty {
-            return cards
-        }
-
-        switch task.id {
-        case TaskID.steps:
-            let card = EventQueryView<NumericProgressTaskView>(
-                query: query
-            )
-            .formattedHostingController()
-
-            return [card]
-
-        case TaskID.ovulationTestResult:
-            let card = EventQueryView<LabeledValueTaskView>(
-                query: query
-            )
-            .formattedHostingController()
-
-            return [card]
-
-        case TaskID.stretch:
-            let card = EventQueryView<InstructionsTaskView>(
-                query: query
-            )
-            .formattedHostingController()
-
-            return [card]
-
-        case TaskID.kegels:
-            /*
-             Since the kegel task is only scheduled every other day, there will be cases
-             where it is not contained in the tasks array returned from the query.
-             */
-            let card = EventQueryView<SimpleTaskView>(
-                query: query
-            )
-            .formattedHostingController()
-
-            return [card]
-
-        #if os(iOS)
-        // Create a card for the doxylamine task if there are events for it on this day.
-        case TaskID.doxylamine:
-
-            // This is a UIKit based card.
-            let card = OCKChecklistTaskViewController(
-                query: query,
-                store: appStore
-            )
-
-            return [card]
-        #endif
-
-        case TaskID.nausea:
-
-        #if os(iOS)
-            /*
-             Also create a card (UIKit view) that displays a single event.
-             The event query passed into the initializer specifies that only
-             today's log entries should be displayed by this log task view controller.
-             */
-            let nauseaCard = OCKButtonLogTaskViewController(
-                query: query,
-                store: appStore
-            )
-
-            return [nauseaCard]
-
-            #else
-            return []
-            #endif
-
-        default:
-            return nil
-        }
-    }
-
-    private func appendTasks(
-        _ tasks: [any OCKAnyTask],
-        to listViewController: OCKListViewController,
-        date: Date
-    ) {
-        let isCurrentDay = isSameDay(as: date)
-        var fallbackTasks: [any OCKAnyTask] = []
-
-        for task in tasks {
-            let cards = self.taskViewControllers(
-                task,
-                on: date
-            ) ?? []
-
-            // If no cards were produced for this task, show it in the fallback list.
-            guard !cards.isEmpty else {
-                fallbackTasks.append(task)
-                continue
-            }
-
-            cards.forEach { viewController in
-                if let carekitView = viewController.view as? OCKView {
-                    carekitView.customStyle = style
-                }
-                viewController.view.isUserInteractionEnabled = isCurrentDay
-                viewController.view.alpha = !isCurrentDay ? 0.4 : 1.0
-				listViewController.appendViewController(viewController, animated: true)
-            }
-        }
-
-        #if os(iOS)
-        if !fallbackTasks.isEmpty {
-            let fallbackVC = DailyTaskListViewController(tasks: fallbackTasks)
-            fallbackVC.view.isUserInteractionEnabled = isCurrentDay
-            fallbackVC.view.alpha = !isCurrentDay ? 0.4 : 1.0
-            fallbackVC.view.layer.cornerRadius = 12
-            fallbackVC.view.clipsToBounds = true
-            fallbackVC.view.backgroundColor = .clear
-            listViewController.appendViewController(fallbackVC, animated: true)
-
-        }
-        #endif
-		self.isLoading = false
-    }
-}
-
-#if os(iOS)
-extension CareViewController {
-    /// Custom gate controllers for onboarding, guided motion, and daily check-in (ResearchKit flows).
-    fileprivate func viewControllersForSpecialTaskIDs(
-        task: any OCKAnyTask,
-        query: OCKEventQuery
-    ) -> [UIViewController]? {
-        if task.id == TaskID.onboarding {
-            var taskQuery = query
-            taskQuery.taskIDs = [TaskID.onboarding]
-            return [OnboardingGateViewController(store: appStore, eventQuery: taskQuery)]
-        }
-        if task.id == AppTaskID.rangeOfMotion {
-            var taskQuery = query
-            taskQuery.taskIDs = [AppTaskID.rangeOfMotion]
-            return [RaiseArmGateViewController(store: appStore, eventQuery: taskQuery)]
-        }
-        if task.id == AppTaskID.bpMedicationAM {
-            var taskQuery = query
-            taskQuery.taskIDs = [AppTaskID.bpMedicationAM]
-            return [HypertensionCheckInGateViewController(store: appStore, eventQuery: taskQuery)]
-        }
-        return nil
-    }
-}
-#endif
-
-private extension CareViewController {
-    func isSameDay(as date: Date) -> Bool {
+    private func isSameDay(as date: Date) -> Bool {
         Calendar.current.isDate(
             date,
             inSameDayAs: Date()
         )
     }
 
-    func modifyDateIfNeeded(_ date: Date) -> Date {
+    private func modifyDateIfNeeded(_ date: Date) -> Date {
         guard date < .now else {
             return date
         }
@@ -387,297 +184,524 @@ private extension CareViewController {
         }
         return date.endOfDay
     }
+
+	private func fetchAndDisplayTasks(
+		on listViewController: OCKListViewController,
+		for date: Date,
+		generation: Int
+	) async {
+		if !hasValidatedHypertensionSeed {
+			hasValidatedHypertensionSeed = true
+			await Utility.migrateHypertensionTasksIfNeeded()
+		}
+		let tasks = await self.fetchTasks(on: date)
+		guard generation == taskLoadGeneration else {
+			return
+		}
+		appendTasks(tasks, to: listViewController, date: date)
+	}
 }
 
-/// Hypertension onboarding CareKit card; completing the card (or tapping the card) launches ResearchKit onboarding.
-final class OnboardingGateViewController: OCKInstructionsTaskViewController {
+private extension CareViewController {
+	func fetchTasks(on date: Date) async -> [any OCKAnyTask] {
+		var query = OCKTaskQuery(for: date)
+		query.excludesTasksWithNoEvents = true
+		do {
+			let tasks = try await store.fetchAnyTasks(query: query)
+			let filteredTasks = normalizeVisibleTasks(
+				filterOutDemoTasks(tasks)
+			)
+			let careTasks = filteredTasks.compactMap { $0 as? CareTask }
+			let orderedTasks = careTasks.sortedByPriority().compactMap { orderedTask in
+				filteredTasks.first(where: { $0.id == orderedTask.id })
+			}
+			let unorderedTasks = filteredTasks.filter { task in
+				orderedTasks.first(where: { $0.id == task.id }) == nil
+			}
+			return await applyOnboardingGate(orderedTasks + unorderedTasks)
+		} catch {
+			Logger.feed.error("Could not fetch tasks: \(error, privacy: .public)")
+			return []
+		}
+	}
 
-    private var isResearchKitPresented = false
+	func appendTasks(
+		_ tasks: [any OCKAnyTask],
+		to listViewController: OCKListViewController,
+		date: Date
+	) {
+		listViewController.clear()
+		let isCurrentDay = isSameDay(as: date)
+		tasks.compactMap {
+			let cards = self.taskViewControllers(
+				$0,
+				on: date
+			)
+			cards?.forEach {
+				if let carekitView = $0.view as? OCKView {
+					carekitView.customStyle = style
+				}
+				$0.view.isUserInteractionEnabled = isCurrentDay
+				$0.view.alpha = !isCurrentDay ? 0.4 : 1.0
+			}
+			return cards
+		}.forEach { (cards: [UIViewController]) in
+			cards.forEach {
+				listViewController.appendViewController($0, animated: false)
+			}
+		}
+		self.isLoading = false
+		if pendingReload {
+			pendingReload = false
+			reload()
+		}
+	}
 
-    init(store: OCKAnyStoreProtocol, eventQuery: OCKEventQuery) {
-        var onboardingQuery = eventQuery
-        onboardingQuery.taskIDs = [TaskID.onboarding]
-        super.init(query: onboardingQuery, store: store)
-    }
+	func filterOutDemoTasks(
+		_ tasks: [any OCKAnyTask]
+	) -> [any OCKAnyTask] {
+		tasks.filter { task in
+			let id = task.id.lowercased()
+			let title = (
+				(task as? OCKTask)?.title
+				?? (task as? OCKHealthKitTask)?.title
+				?? task.id
+			).lowercased()
+			if title.contains("benefits of exercising") || title.contains("benefits of exercise") {
+				return false
+			}
+			let keywords = ["pregnancy", "ovulation", "doxylamine", "nausea", "kegels", "stretch"]
+			return !keywords.contains(where: { id.contains($0) || title.contains($0) })
+		}
+	}
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+	func applyOnboardingGate(
+		_ tasks: [any OCKAnyTask]
+	) async -> [any OCKAnyTask] {
+		let defaults = UserDefaults.standard
+		let onboardingIDs = Set(TaskID.onboardingIDs)
 
-    override func taskView(
-        _ taskView: UIView & OCKTaskDisplayable,
-        didCompleteEvent isComplete: Bool,
-        at indexPath: IndexPath,
-        sender: Any?
-    ) {
-        presentResearchKitFlowIfNeeded()
-    }
+		let todayOnboardingEvents = await onboardingEvents(on: Date())
+		if !todayOnboardingEvents.isEmpty {
+			let hasCompletedToday = todayOnboardingEvents.contains(where: \.isComplete)
+			defaults.set(hasCompletedToday, forKey: Constants.onboardingCompletedKey)
 
-    override func didSelectTaskView(_ taskView: UIView & OCKTaskDisplayable, eventIndexPath: IndexPath) {
-        presentResearchKitFlowIfNeeded()
-    }
+			guard hasCompletedToday else {
+				return tasks.filter { onboardingIDs.contains($0.id) }
+			}
+			return tasks
+		}
 
-    private func presentResearchKitFlowIfNeeded() {
-        guard !isResearchKitPresented else { return }
-        isResearchKitPresented = true
-        let taskVC = ORKTaskViewController(task: Onboarding.task, taskRun: UUID())
-        taskVC.delegate = self
-        var presenter: UIViewController = self
-        while let presented = presenter.presentedViewController {
-            presenter = presented
-        }
-        presenter.present(taskVC, animated: true)
-    }
+		let completionFlag = defaults.bool(forKey: Constants.onboardingCompletedKey)
+		guard completionFlag else {
+			return tasks.filter { onboardingIDs.contains($0.id) }
+		}
+		return tasks
+	}
+
+	func normalizeVisibleTasks(
+		_ tasks: [any OCKAnyTask]
+	) -> [any OCKAnyTask] {
+		let visibleTasks = tasks.filter(shouldDisplayTask)
+		let groupedTasks = Dictionary(grouping: visibleTasks) { task in
+			canonicalTaskID(for: task.id)
+		}
+
+		return groupedTasks.values.compactMap { group in
+			preferredTask(from: group)
+		}
+	}
+
+	func shouldDisplayTask(_ task: any OCKAnyTask) -> Bool {
+		let id = task.id
+		if id.hasPrefix("custom_") || id.hasPrefix("custom_hk_") {
+			return true
+		}
+
+		let currentTaskIDs = Set(AppTaskID.orderedCare + TaskID.onboardingIDs)
+		return currentTaskIDs.contains(id)
+	}
+
+	func canonicalTaskID(for id: String) -> String {
+		TaskID.onboardingIDs.contains(id) ? TaskID.onboarding : id
+	}
+
+	func preferredTask(from tasks: [any OCKAnyTask]) -> (any OCKAnyTask)? {
+		tasks.max { lhs, rhs in
+			preferenceScore(for: lhs) < preferenceScore(for: rhs)
+		}
+	}
+
+	func preferenceScore(for task: any OCKAnyTask) -> Double {
+		let canonicalID = canonicalTaskID(for: task.id)
+		let preferredID = canonicalID
+		let expectedTitle = expectedTaskTitle(for: canonicalID)
+		let expectedCard = expectedCard(for: canonicalID)
+		let expectedInstructions = expectedInstructionSnippet(for: canonicalID)
+		let title = taskTitle(for: task)
+		var score = task.effectiveDate.timeIntervalSince1970
+
+		if task.id == preferredID {
+			score += 1_000_000_000_000
+		}
+
+		if title == expectedTitle {
+			score += 500_000_000_000
+		}
+
+		if taskCard(for: task) == expectedCard {
+			score += 250_000_000_000
+		}
+
+		if let expectedInstructions,
+		   taskInstructions(for: task)?.contains(expectedInstructions) == true {
+			score += 125_000_000_000
+		}
+
+		if canonicalID == AppTaskID.bpMeasurement,
+		   let standardTask = task as? OCKTask,
+		   hasExpectedMeasurementSurvey(standardTask) {
+			score += 750_000_000_000
+		}
+
+		return score
+	}
+
+	func expectedCard(for id: String) -> CareKitCard {
+		switch id {
+		case TaskID.onboarding:
+			return .uiKitSurvey
+		case AppTaskID.medicationChecklist:
+			return .checklist
+		case AppTaskID.bpMeasurement:
+			return .survey
+		case AppTaskID.symptomsCheck:
+			return .button
+		case AppTaskID.morningPrep:
+			return .instruction
+		case AppTaskID.lowSodiumCheck:
+			return .link
+		case AppTaskID.walkAssessment:
+			return .featured
+		case AppTaskID.heartRate:
+			return .numericProgress
+		case AppTaskID.restingHeartRate:
+			return .labeledValue
+		default:
+			return .custom
+		}
+	}
+
+	func expectedTaskTitle(for id: String) -> String {
+		switch id {
+		case TaskID.onboarding:
+			return "Hypertension Onboarding"
+		case AppTaskID.medicationChecklist:
+			return "Medication Adherence"
+		case AppTaskID.bpMeasurement:
+			return "Measure Blood Pressure"
+		case AppTaskID.symptomsCheck:
+			return "Symptoms & Side Effects Check"
+		case AppTaskID.morningPrep:
+			return "Morning BP Prep"
+		case AppTaskID.lowSodiumCheck:
+			return "Hypertension Education Link"
+		case AppTaskID.walkAssessment:
+			return "Daily Walking Check"
+		case AppTaskID.heartRate:
+			return "Heart Rate Trend"
+		case AppTaskID.restingHeartRate:
+			return "Resting Heart Rate Review"
+		default:
+			return id
+		}
+	}
+
+	func expectedInstructionSnippet(for id: String) -> String? {
+		switch id {
+		case AppTaskID.bpMeasurement:
+			return "systolic and diastolic blood pressure values"
+		case AppTaskID.symptomsCheck:
+			return "Log whether you noticed headache, dizziness"
+		case AppTaskID.morningPrep:
+			return "Review the correct morning blood pressure routine"
+		default:
+			return nil
+		}
+	}
+
+	func taskTitle(for task: any OCKAnyTask) -> String {
+		if let standardTask = task as? OCKTask {
+			return standardTask.title ?? standardTask.id
+		}
+		if let healthTask = task as? OCKHealthKitTask {
+			return healthTask.title ?? healthTask.id
+		}
+		return task.id
+	}
+
+	func taskInstructions(for task: any OCKAnyTask) -> String? {
+		if let standardTask = task as? OCKTask {
+			return standardTask.instructions
+		}
+		if let healthTask = task as? OCKHealthKitTask {
+			return healthTask.instructions
+		}
+		return nil
+	}
+
+	func taskCard(for task: any OCKAnyTask) -> CareKitCard {
+		if let standardTask = task as? OCKTask {
+			return standardTask.card
+		}
+		if let healthTask = task as? OCKHealthKitTask {
+			return healthTask.card
+		}
+		return .custom
+	}
+
+	func hasExpectedMeasurementSurvey(_ task: OCKTask) -> Bool {
+		guard let steps = task.surveySteps else {
+			return false
+		}
+		let questionIDs = steps
+			.flatMap(\.questions)
+			.map(\.id)
+		return questionIDs.contains(MeasurementSurveyKind.systolicValue.rawValue)
+			&& questionIDs.contains(MeasurementSurveyKind.diastolicValue.rawValue)
+	}
+
+	func onboardingEvents(on date: Date = Date()) async -> [OCKAnyEvent] {
+		var query = OCKEventQuery(for: date)
+		query.taskIDs = TaskID.onboardingIDs
+
+		do {
+			return try await store.fetchAnyEvents(query: query)
+		} catch {
+			Logger.feed.error("Could not fetch onboarding events: \(error, privacy: .public)")
+			return []
+		}
+	}
 }
 
-/// Presents the lower-body ROM demo flow and records completion on the CareKit event when finished.
-final class RaiseArmGateViewController: OCKInstructionsTaskViewController {
+private extension CareViewController {
+	func taskViewControllers(
+		_ task: any OCKAnyTask,
+		on date: Date
+	) -> [UIViewController]? {
+		var query = OCKEventQuery(for: date)
+		query.taskIDs = [task.id]
 
-    private var isResearchKitPresented = false
-    /// Retained because `OCKTaskViewController`’s `store` is `internal` to CareKit and not visible to subclasses.
-    private let eventStore: OCKAnyStoreProtocol
+		if let standardTask = task as? OCKTask {
+			return standardTaskViewControllers(standardTask, query: query)
+		}
 
-    init(store: OCKAnyStoreProtocol, eventQuery: OCKEventQuery) {
-        self.eventStore = store
-        var raiseArmQuery = eventQuery
-        raiseArmQuery.taskIDs = [AppTaskID.rangeOfMotion]
-        super.init(query: raiseArmQuery, store: store)
-    }
+		if let healthTask = task as? OCKHealthKitTask {
+			return healthTaskViewControllers(healthTask, query: query)
+		}
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+		return nil
+	}
 
-    override func taskView(
-        _ taskView: UIView & OCKTaskDisplayable,
-        didCompleteEvent isComplete: Bool,
-        at indexPath: IndexPath,
-        sender: Any?
-    ) {
-        presentRaiseArmFlowIfNeeded()
-    }
+	func standardTaskViewControllers(
+		_ task: OCKTask,
+		query: OCKEventQuery
+	) -> [UIViewController]? {
+		switch task.card {
+		#if os(iOS)
+		case .button:
+			return [OCKButtonLogTaskViewController(query: query, store: self.store)]
 
-    override func didSelectTaskView(_ taskView: UIView & OCKTaskDisplayable, eventIndexPath: IndexPath) {
-        presentRaiseArmFlowIfNeeded()
-    }
+		case .checklist:
+			return [OCKChecklistTaskViewController(query: query, store: self.store)]
+		#endif
 
-    private func presentRaiseArmFlowIfNeeded() {
-        guard !isResearchKitPresented else { return }
-        isResearchKitPresented = true
-        let demo = RangeOfMotionDemoFlowViewController()
-        demo.onFinished = { [weak self] completed in
-            self?.isResearchKitPresented = false
-            if completed {
-                self?.markTodaysEventCompletedIfNeeded()
-            }
-        }
-        let nav = UINavigationController(rootViewController: demo)
-        nav.modalPresentationStyle = .fullScreen
-        var presenter: UIViewController = self
-        while let presented = presenter.presentedViewController {
-            presenter = presented
-        }
-        presenter.present(nav, animated: true)
-    }
+		case .featured, .grid, .link, .custom, .labeledValue:
+			if task.card == .grid {
+				#if os(iOS)
+				return [OCKGridTaskViewController(query: query, store: self.store)]
+				#else
+				return [customCardController(query: query)]
+				#endif
+			}
+			return [customCardController(query: query)]
 
-    private func firstEventInViewModel() -> OCKAnyEvent? {
-        for section in viewModel {
-            if let event = section.first {
-                return event
-            }
-        }
-        return nil
-    }
+		case .instruction:
+			return [hostedCard(InstructionsTaskView.self, query: query)]
 
-    private func markTodaysEventCompletedIfNeeded() {
-        guard let event = firstEventInViewModel() else {
-            postCareRefresh()
-            return
-        }
-        if event.outcome != nil {
-            postCareRefresh()
-            return
-        }
-        eventStore.fetchAnyEvent(
-            forTask: event.task,
-            occurrence: event.scheduleEvent.occurrence,
-            callbackQueue: .main
-        ) { [weak self] result in
-            guard let self else {
-                return
-            }
-            switch result {
-            case .failure:
-                Task { @MainActor [weak self] in self?.postCareRefresh() }
-            case .success(let fresh):
-                if let outcome = fresh.outcome {
-                    self.eventStore.deleteAnyOutcome(outcome) { _ in
-                        Task { @MainActor [weak self] in self?.postCareRefresh() }
-                    }
-                } else {
-                    let newOutcome = OCKOutcome(
-                        taskUUID: fresh.task.uuid,
-                        taskOccurrenceIndex: fresh.scheduleEvent.occurrence,
-                        values: [OCKOutcomeValue(true)]
-                    )
-                    self.eventStore.addAnyOutcome(newOutcome) { _ in
-                        Task { @MainActor [weak self] in self?.postCareRefresh() }
-                    }
-                }
-            }
-        }
-    }
+		case .simple:
+			return [hostedCard(SimpleTaskView.self, query: query)]
 
-    private func postCareRefresh() {
-        NotificationCenter.default.post(
-            name: Notification.Name(rawValue: Constants.shouldRefreshView),
-            object: nil
-        )
-    }
+		case .survey:
+			return makeResearchSurveyController(query: query, task: task)
+
+		#if canImport(ResearchKit) && canImport(ResearchKitUI)
+		case .uiKitSurvey:
+			return makeUIKitSurveyController(query: query, task: task)
+		#endif
+
+		case .numericProgress:
+			return [hostedCard(NumericProgressTaskView.self, query: query)]
+		}
+	}
+
+	func healthTaskViewControllers(
+		_ task: OCKHealthKitTask,
+		query: OCKEventQuery
+	) -> [UIViewController]? {
+		switch task.card {
+		case .labeledValue:
+			return [hostedCard(LabeledValueStatusCardView.self, query: query)]
+
+		case .numericProgress:
+			return [hostedCard(NumericProgressStatusCardView.self, query: query)]
+
+		case .featured, .grid, .link, .custom:
+			return [customCardController(query: query)]
+
+		default:
+			return nil
+		}
+	}
+
+	func makeResearchSurveyController(
+		query: OCKEventQuery,
+		task: OCKTask
+	) -> [UIViewController]? {
+		guard let card = researchSurveyViewController(
+			query: query,
+			task: task
+		) else {
+			Logger.feed.warning("Unable to create research survey view controller")
+			return nil
+		}
+		return [card]
+	}
+
+	#if canImport(ResearchKit) && canImport(ResearchKitUI)
+	func makeUIKitSurveyController(
+		query: OCKEventQuery,
+		task: OCKTask
+	) -> [UIViewController]? {
+		guard let survey = task.uiKitSurvey else {
+			Logger.feed.error("Can only use a survey for an \"OCKTask\", not \(task.id)")
+			return nil
+		}
+
+		let surveyCard = OCKSurveyTaskViewController(
+			eventQuery: query,
+			store: self.store,
+			survey: survey.type().createSurvey(),
+			viewSynchronizer: SurveyViewSynchronizer(),
+			extractOutcome: survey.type().extractAnswers
+		)
+		surveyCard.surveyDelegate = self
+		return [surveyCard]
+	}
+	#endif
+
+	func researchSurveyViewController(
+		query: OCKEventQuery,
+		task: OCKTask
+	) -> UIViewController? {
+		guard let steps = task.surveySteps else {
+			return nil
+		}
+
+		if task.id == AppTaskID.bpMeasurement {
+			let surveyViewController = EventQueryContentView<ResearchSurveyView>(
+				query: query
+			) {
+				EventQueryContentView<MeasurementResearchCareForm>(
+					query: query
+				) {
+					ForEach(steps) { step in
+						ResearchFormStep(
+							title: task.title,
+							subtitle: task.instructions
+						) {
+							ForEach(step.questions) { question in
+								question.view()
+							}
+						}
+					}
+				}
+			}
+			.environment(\.careStore, store)
+			.padding(.vertical, swiftUIPadding)
+			.formattedHostingController()
+
+			return surveyViewController
+		}
+
+		let surveyViewController = EventQueryContentView<ResearchSurveyView>(
+			query: query
+		) {
+			EventQueryContentView<ResearchCareForm>(
+				query: query
+			) {
+				ForEach(steps) { step in
+					ResearchFormStep(
+						title: task.title,
+						subtitle: task.instructions
+					) {
+						ForEach(step.questions) { question in
+							question.view()
+						}
+					}
+				}
+			}
+		}
+		.environment(\.careStore, store)
+		.padding(.vertical, swiftUIPadding)
+		.formattedHostingController()
+
+		return surveyViewController
+	}
+
+	func hostedCard<Card: EventViewable>(
+		_ type: Card.Type,
+		query: OCKEventQuery
+	) -> UIViewController {
+		EventQueryView<Card>(query: query)
+			.environment(\.careStore, store)
+			.padding(.vertical, swiftUIPadding)
+			.formattedHostingController()
+	}
+
+	func customCardController(query: OCKEventQuery) -> UIViewController {
+		EventQueryView<MyCustomCardView>(
+			query: query
+		)
+		.environment(\.careStore, store)
+		.padding(.vertical, swiftUIPadding)
+		.formattedHostingController()
+	}
 }
 
-/// Presents the daily Hypertension Check-In survey and marks today’s event complete when finished.
-final class HypertensionCheckInGateViewController: OCKInstructionsTaskViewController {
-
-    private var isResearchKitPresented = false
-    private let eventStore: OCKAnyStoreProtocol
-
-    init(store: OCKAnyStoreProtocol, eventQuery: OCKEventQuery) {
-        self.eventStore = store
-        var checkInQuery = eventQuery
-        checkInQuery.taskIDs = [AppTaskID.bpMedicationAM]
-        super.init(query: checkInQuery, store: store)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func taskView(
-        _ taskView: UIView & OCKTaskDisplayable,
-        didCompleteEvent isComplete: Bool,
-        at indexPath: IndexPath,
-        sender: Any?
-    ) {
-        presentCheckInFlowIfNeeded()
-    }
-
-    override func didSelectTaskView(_ taskView: UIView & OCKTaskDisplayable, eventIndexPath: IndexPath) {
-        presentCheckInFlowIfNeeded()
-    }
-
-    private func presentCheckInFlowIfNeeded() {
-        guard !isResearchKitPresented else { return }
-        isResearchKitPresented = true
-        let taskVC = ORKTaskViewController(task: HypertensionCheckIn.task, taskRun: UUID())
-        taskVC.delegate = self
-        var presenter: UIViewController = self
-        while let presented = presenter.presentedViewController {
-            presenter = presented
-        }
-        presenter.present(taskVC, animated: true)
-    }
-
-    private func firstEventInViewModel() -> OCKAnyEvent? {
-        for section in viewModel {
-            if let event = section.first {
-                return event
-            }
-        }
-        return nil
-    }
-
-    private func markTodaysEventCompletedIfNeeded() {
-        guard let event = firstEventInViewModel() else {
-            postCareRefresh()
-            return
-        }
-        if event.outcome != nil {
-            postCareRefresh()
-            return
-        }
-        eventStore.fetchAnyEvent(
-            forTask: event.task,
-            occurrence: event.scheduleEvent.occurrence,
-            callbackQueue: .main
-        ) { [weak self] result in
-            guard let self else {
-                return
-            }
-            switch result {
-            case .failure:
-                Task { @MainActor [weak self] in self?.postCareRefresh() }
-            case .success(let fresh):
-                if let outcome = fresh.outcome {
-                    self.eventStore.deleteAnyOutcome(outcome) { _ in
-                        Task { @MainActor [weak self] in self?.postCareRefresh() }
-                    }
-                } else {
-                    let newOutcome = OCKOutcome(
-                        taskUUID: fresh.task.uuid,
-                        taskOccurrenceIndex: fresh.scheduleEvent.occurrence,
-                        values: [OCKOutcomeValue(true)]
-                    )
-                    self.eventStore.addAnyOutcome(newOutcome) { _ in
-                        Task { @MainActor [weak self] in self?.postCareRefresh() }
-                    }
-                }
-            }
-        }
-    }
-
-    private func postCareRefresh() {
-        NotificationCenter.default.post(
-            name: Notification.Name(rawValue: Constants.shouldRefreshView),
-            object: nil
-        )
-    }
+#if canImport(ResearchKit) && canImport(ResearchKitUI)
+extension CareViewController: OCKSurveyTaskViewControllerDelegate {
+	nonisolated func surveyTask(
+		viewController: OCKSurveyTaskViewController,
+		for task: any OCKAnyTask,
+		didFinish result: Swift.Result<ORKTaskFinishReason, any Error>
+	) {
+		if case let .success(reason) = result, reason == .completed {
+			Task { @MainActor in
+				self.reload()
+			}
+		}
+	}
 }
-
-extension HypertensionCheckInGateViewController: ORKTaskViewControllerDelegate {
-
-    nonisolated func taskViewController(
-        _ taskViewController: ORKTaskViewController,
-        didFinishWith reason: ORKTaskFinishReason,
-        error: Error?
-    ) {
-        Task { @MainActor [weak self] in
-            self?.isResearchKitPresented = false
-            if reason == .completed {
-                self?.markTodaysEventCompletedIfNeeded()
-            }
-            taskViewController.dismiss(animated: true, completion: nil)
-        }
-    }
-}
-
-extension OnboardingGateViewController: ORKTaskViewControllerDelegate {
-
-    nonisolated func taskViewController(
-        _ taskViewController: ORKTaskViewController,
-        didFinishWith reason: ORKTaskFinishReason,
-        error: Error?
-    ) {
-        Task { @MainActor [weak self] in
-            self?.isResearchKitPresented = false
-            if reason == .completed {
-                UserDefaults.standard.set(true, forKey: Constants.onboardingCompletedKey)
-                Utility.requestHealthKitPermissions()
-                NotificationCenter.default.post(
-                    name: Notification.Name(rawValue: Constants.shouldRefreshView),
-                    object: nil
-                )
-            }
-            taskViewController.dismiss(animated: true, completion: nil)
-        }
-    }
-}
+#endif
 
 private extension View {
-    /// Convert SwiftUI view to UIKit view.
     func formattedHostingController() -> UIHostingController<Self> {
         let viewController = UIHostingController(rootView: self)
         viewController.view.backgroundColor = .clear
+		if #available(iOS 16.0, *) {
+			viewController.sizingOptions = [.intrinsicContentSize]
+		}
         return viewController
     }
 }

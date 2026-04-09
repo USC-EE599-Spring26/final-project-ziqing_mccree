@@ -98,7 +98,6 @@ class LoginViewModel: ObservableObject {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             NotificationCenter.default.post(.init(name: Notification.Name(rawValue: Constants.requestSync)))
-            Utility.requestHealthKitPermissions()
         }
 
         // Setup installation to receive push notifications
@@ -132,28 +131,7 @@ class LoginViewModel: ObservableObject {
         newPatient.userType = type
         let savedPatient = try await appDelegate.store.addPatient(newPatient)
 
-		let currentDate = Date()
-		let startDate = daysInThePastToGenerateSampleData < 0 ? Calendar.current.date(
-			byAdding: .day,
-			value: daysInThePastToGenerateSampleData,
-			to: currentDate
-		)! : currentDate
-        /*try await appDelegate.store.populateDefaultCarePlansTasksContacts(
-			startDate: startDate
-		)*/
-        if appDelegate.store.name != Constants.noCareStoreName {
-            try await appDelegate.store.populateDefaultCarePlansTasksContacts(startDate: Date())
-        } else {
-            print("Skip populate because store is noCareStoreName")
-        }
-        try await appDelegate.healthKitStore.populateDefaultHealthKitTasks(
-			startDate: startDate
-		)
-		if startDate < currentDate {
-			try await appDelegate.store.populateSampleOutcomes(
-				startDate: startDate
-			)
-		}
+        try await Utility.seedHypertensionDataInCurrentStores()
         appDelegate.parseRemote.automaticallySynchronizes = true
 
         // Post notification to sync
@@ -191,6 +169,7 @@ class LoginViewModel: ObservableObject {
             newUser.username = username.lowercased()
             newUser.password = password
             newUser.email = email
+            newUser.hypertensionSeedVersion = Constants.hypertensionSeedVersion
             let user = try await newUser.signup()
             Logger.login.info("Parse signup successful: \(user)")
             let patient = try await savePatientAfterSignUp(type,
@@ -235,6 +214,7 @@ class LoginViewModel: ObservableObject {
             AppDelegateKey.defaultValue?.setFirstTimeLogin(true)
             do {
                 try await Utility.setupRemoteAfterLogin()
+                await Utility.migrateHypertensionTasksIfNeeded()
                 try await finishCompletingSignIn()
             } catch {
                 Logger.login.error("Error saving the patient after signup: \(error, privacy: .public)")

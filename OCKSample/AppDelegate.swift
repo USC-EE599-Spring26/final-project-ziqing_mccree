@@ -188,10 +188,13 @@ final class AppDelegate: UIResponder, ObservableObject {
     func debugReseedIfNeeded() async {
         let defaults = UserDefaults.standard
         let key = "ForceReseedHypertension"
-        if defaults.object(forKey: key) == nil {
-            defaults.set(true, forKey: key)
-        }
         guard defaults.bool(forKey: key) else {
+            return
+        }
+        guard let store = self.store,
+              let healthKitStore = self.healthKitStore,
+              store.name != Constants.noCareStoreName else {
+            Logger.utility.info("DEBUG reseed skipped because stores are not ready yet")
             return
         }
 
@@ -199,12 +202,26 @@ final class AppDelegate: UIResponder, ObservableObject {
             Logger.utility.info("DEBUG reseed: populating hypertension demo data")
             UserDefaults.standard.set(false, forKey: Constants.onboardingCompletedKey)
             try await store.populateDefaultCarePlansTasksContacts()
+            try await healthKitStore.populateDefaultHealthKitTasks()
+            let sampleStartDate = Calendar.current.date(
+                byAdding: .day,
+                value: daysInThePastToGenerateSampleData,
+                to: Date()
+            )!
+            try await store.populateSampleOutcomes(
+                startDate: sampleStartDate
+            )
 
             let today = Date()
             var query = OCKTaskQuery(for: today)
             query.excludesTasksWithNoEvents = false
             let tasks = try await store.fetchAnyTasks(query: query)
             Logger.utility.info("DEBUG reseed complete. Tasks available for today: \(tasks.count)")
+            defaults.set(
+                Constants.hypertensionSeedVersion,
+                forKey: Constants.hypertensionSeedVersionKey
+            )
+            defaults.set(false, forKey: key)
         } catch {
             Logger.utility.error("DEBUG reseed failed: \(error)")
         }

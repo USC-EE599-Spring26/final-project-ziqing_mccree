@@ -10,6 +10,11 @@ import CareKitStore
 import Foundation
 import os.log
 
+private enum MeasurementOutcomeKind {
+    static let systolicValue = "systolicValue"
+    static let diastolicValue = "diastolicValue"
+}
+
 extension OCKStore {
 
     func populateSampleOutcomes(
@@ -47,7 +52,8 @@ extension OCKStore {
 
             switch event.task.id {
 
-            case TaskID.doxylamine, TaskID.kegels, TaskID.stretch:
+            case TaskID.doxylamine, TaskID.kegels, TaskID.stretch,
+                 AppTaskID.medicationChecklist:
 
                 let randomBool: Bool = .random()
                 guard randomBool else { return nil }
@@ -89,35 +95,27 @@ extension OCKStore {
             // Hypertension Tasks
             // -------------------------
 
-            case AppTaskID.bpMedicationAM,
-                 AppTaskID.bpMedicationPM,
-                 AppTaskID.lowSodiumCheck,
-                 AppTaskID.rangeOfMotion:
-
-                let randomBool: Bool = .random()
-                guard randomBool else { return nil }
-
-                let outcomeValue = createOutcomeValue(
-                    randomBool,
-                    createdDate: initialRandomDate
-                )
-
-                return addValueToOutcome(
-                    [outcomeValue],
-                    for: event
-                )
-
             case AppTaskID.bpMeasurement:
 
-                let randomSystolic = Int.random(in: 110...160)
+                let randomSystolic = Int.random(in: 112...148)
+                let randomDiastolic = Int.random(in: 72...96)
 
-                let outcomeValue = createOutcomeValue(
+                var systolicValue = createOutcomeValue(
                     randomSystolic,
                     createdDate: initialRandomDate
                 )
+                systolicValue.kind = MeasurementOutcomeKind.systolicValue
+                systolicValue.units = "mmHg"
+
+                var diastolicValue = createOutcomeValue(
+                    randomDiastolic,
+                    createdDate: initialRandomDate
+                )
+                diastolicValue.kind = MeasurementOutcomeKind.diastolicValue
+                diastolicValue.units = "mmHg"
 
                 return addValueToOutcome(
-                    [outcomeValue],
+                    [systolicValue, diastolicValue],
                     for: event
                 )
 
