@@ -29,7 +29,7 @@ let isSendingPushUpdatesToWatch = true
  set this value to a negative number. This is used for demo purposes if you want populate
  the InsightsView charts with data.
  */
-let daysInThePastToGenerateSampleData: Int = 0 // Should be a negative number, for example -30, for the past 30 days.
+let daysInThePastToGenerateSampleData: Int = -14 // Populate past outcomes so Insights has immediate demo data.
 
 enum Constants {
     static let parseConfigFileName = "ParseCareKit"
@@ -46,4 +46,15 @@ enum Constants {
     static let userLoggedIn = "userLoggedIn"
     static let userTypeKey = "userType"
     static let appName = "ParseCareKitSample"
+    static let card = "card"
+    static let uiKitSurvey = "uiKitSurvey"
+    static let priority = "priority"
+    static let linkURL = "linkURL"
+    static let featuredMessage = "featuredMessage"
+    static let healthPermissionsRequestedKey = "healthPermissionsRequested"
+
+    /// `true` after user completes hypertension ResearchKit onboarding (Care gate).
+    static let onboardingCompletedKey = "onboardingCompleted"
+    static let hypertensionSeedVersionKey = "hypertensionSeedVersion"
+    static let hypertensionSeedVersion = 8
 }
