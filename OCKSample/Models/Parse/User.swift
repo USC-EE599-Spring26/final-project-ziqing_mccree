@@ -26,6 +26,7 @@ struct User: ParseUser {
     var lastTypeSelected: String?
     var userTypeUUIDs: [String: UUID]?
     var hypertensionSeedVersion: Int?
+    var profilePicture: ParseFile?
 }
 
 // MARK: Default Implementation
@@ -43,6 +44,10 @@ extension User {
         if updated.shouldRestoreKey(\.hypertensionSeedVersion,
                                      original: object) {
             updated.hypertensionSeedVersion = object.hypertensionSeedVersion
+        }
+        if updated.shouldRestoreKey(\.profilePicture,
+                                     original: object) {
+            updated.profilePicture = object.profilePicture
         }
         return updated
     }
