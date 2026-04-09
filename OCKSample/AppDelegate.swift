@@ -36,7 +36,6 @@ import ParseSwift
 import Synchronization
 import UIKit
 import WatchConnectivity
-import ResearchKit
 
 @MainActor
 final class AppDelegate: UIResponder, ObservableObject {
