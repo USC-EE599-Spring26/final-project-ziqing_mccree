@@ -10,6 +10,11 @@ import CareKitStore
 import Foundation
 import os.log
 
+private enum MeasurementOutcomeKind {
+    static let systolicValue = "systolicValue"
+    static let diastolicValue = "diastolicValue"
+}
+
 extension OCKStore {
 
     func populateSampleOutcomes(
@@ -99,14 +104,14 @@ extension OCKStore {
                     randomSystolic,
                     createdDate: initialRandomDate
                 )
-                systolicValue.kind = MeasurementSurveyKind.systolicValue.rawValue
+                systolicValue.kind = MeasurementOutcomeKind.systolicValue
                 systolicValue.units = "mmHg"
 
                 var diastolicValue = createOutcomeValue(
                     randomDiastolic,
                     createdDate: initialRandomDate
                 )
-                diastolicValue.kind = MeasurementSurveyKind.diastolicValue.rawValue
+                diastolicValue.kind = MeasurementOutcomeKind.diastolicValue
                 diastolicValue.units = "mmHg"
 
                 return addValueToOutcome(

@@ -15,6 +15,7 @@ import ParseSwift
 import ParseCareKit
 
 extension OCKStore {
+#if os(iOS)
     @MainActor
     class func getCarePlanUUIDs() async throws -> [CarePlanID: UUID] {
         var results = [CarePlanID: UUID]()
@@ -153,6 +154,7 @@ extension OCKStore {
             makeWalkAssessmentTask(carePlanUUID: carePlanUUID, startDate: startDate)
         ])
     }
+#endif
 
     // Adds tasks and contacts into the store
     func populateDefaultCarePlansTasksContacts(
@@ -160,8 +162,13 @@ extension OCKStore {
         startDate: Date = Date(),
         preserveHistoricalWindow: Bool = true
     ) async throws {
+#if os(iOS)
         try await populateCarePlans(patientUUID: patientUUID)
         let carePlanUUIDs = try await Self.getCarePlanUUIDs()
+        let healthCarePlanUUID = carePlanUUIDs[.health]
+#else
+        let healthCarePlanUUID: UUID? = nil
+#endif
         let today = Date()
         let anchorDate = Calendar.current.startOfDay(for: startDate)
         let taskStartDate = preserveHistoricalWindow
@@ -182,7 +189,7 @@ extension OCKStore {
         var medicationChecklist = OCKTask(
             id: AppTaskID.medicationChecklist,
             title: "Medication Adherence",
-            carePlanUUID: carePlanUUIDs[.health],
+            carePlanUUID: healthCarePlanUUID,
             schedule: medicationSchedule
         )
         medicationChecklist.instructions = """
@@ -194,10 +201,27 @@ extension OCKStore {
         medicationChecklist.priority = 10
         medicationChecklist.impactsAdherence = true
 
+#if os(iOS)
         let measurementTask = createQualityOfLifeSurveyTask(
-            carePlanUUID: carePlanUUIDs[.health],
+            carePlanUUID: healthCarePlanUUID,
             startDate: taskStartDate
         )
+#else
+        var measurementTask = OCKTask(
+            id: AppTaskID.bpMeasurement,
+            title: "Measure Blood Pressure",
+            carePlanUUID: healthCarePlanUUID,
+            schedule: medicationSchedule
+        )
+        measurementTask.instructions = """
+        Enter today's systolic and diastolic blood pressure values from your
+        home reading and save both measurements in mmHg.
+        """
+        measurementTask.asset = "drop.circle"
+        measurementTask.card = .simple
+        measurementTask.priority = 20
+        measurementTask.impactsAdherence = true
+#endif
 
         let morningPrepSchedule = OCKSchedule.dailyAtTime(
             hour: 7,
@@ -211,7 +235,7 @@ extension OCKStore {
         var morningPrep = OCKTask(
             id: AppTaskID.morningPrep,
             title: "Morning BP Prep",
-            carePlanUUID: carePlanUUIDs[.health],
+            carePlanUUID: healthCarePlanUUID,
             schedule: morningPrepSchedule
         )
         morningPrep.instructions = """
@@ -235,7 +259,7 @@ extension OCKStore {
         var symptomsCheck = OCKTask(
             id: AppTaskID.symptomsCheck,
             title: "Symptoms & Side Effects Check",
-            carePlanUUID: carePlanUUIDs[.health],
+            carePlanUUID: healthCarePlanUUID,
             schedule: symptomsSchedule
         )
         symptomsCheck.instructions = """
@@ -266,7 +290,7 @@ extension OCKStore {
         var lowSodium = OCKTask(
             id: AppTaskID.lowSodiumCheck,
             title: "Hypertension Education Link",
-            carePlanUUID: carePlanUUIDs[.health],
+            carePlanUUID: healthCarePlanUUID,
             schedule: lowSodiumSchedule
         )
         lowSodium.instructions = """
@@ -283,11 +307,11 @@ extension OCKStore {
         lowSodium.impactsAdherence = false
 
         let onboardingTask = makeOnboardingTask(
-            carePlanUUID: carePlanUUIDs[.health],
+            carePlanUUID: healthCarePlanUUID,
             startDate: taskStartDate
         )
         let walkAssessment = makeWalkAssessmentTask(
-            carePlanUUID: carePlanUUIDs[.health],
+            carePlanUUID: healthCarePlanUUID,
             startDate: taskStartDate
         )
 
@@ -428,8 +452,12 @@ extension OCKStore {
         """
         onboardTask.asset = "heart.text.square.fill"
         onboardTask.impactsAdherence = false
+#if os(iOS)
         onboardTask.card = .uiKitSurvey
         onboardTask.uiKitSurvey = .onboard
+#else
+        onboardTask.card = .instruction
+#endif
         onboardTask.priority = 0
         return onboardTask
     }
@@ -469,7 +497,9 @@ extension OCKStore {
         """
         walkAssessment.impactsAdherence = false
         walkAssessment.card = .featured
+#if os(iOS)
         walkAssessment.uiKitSurvey = .rangeOfMotion
+#endif
         walkAssessment.priority = 55
         return walkAssessment
     }

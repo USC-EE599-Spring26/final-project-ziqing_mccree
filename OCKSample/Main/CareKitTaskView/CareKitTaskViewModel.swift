@@ -58,8 +58,7 @@ class CareKitTaskViewModel: ObservableObject {
 		asset: String? = nil,
 		startDate: Date = Date(),
 		linkURL: String? = nil,
-		featuredMessage: String? = nil,
-		survey: Survey? = nil
+		featuredMessage: String? = nil
 	) async {
 		guard let appDelegate = AppDelegateKey.defaultValue else {
 			error = AppError.couldntBeUnwrapped
@@ -96,17 +95,25 @@ class CareKitTaskViewModel: ObservableObject {
 					featuredMessage,
 					fallback: "Launch a guided daily walking check."
 				)
-				task.uiKitSurvey = survey ?? .rangeOfMotion
+#if os(iOS)
+				task.uiKitSurvey = .rangeOfMotion
+#endif
 			}
 
 			if cardType == .uiKitSurvey {
-				task.uiKitSurvey = survey ?? .rangeOfMotion
+#if os(iOS)
+				task.uiKitSurvey = .rangeOfMotion
+#endif
 			}
 
 			if cardType == .survey {
+#if os(iOS)
 				task.surveySteps = HypertensionSurveyFactory.measurementSurveySteps(
 					taskID: task.id
 				)
+#else
+				task.card = .instruction
+#endif
 			}
 
 		do {
