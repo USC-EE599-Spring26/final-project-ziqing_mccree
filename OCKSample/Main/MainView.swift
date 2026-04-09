@@ -36,9 +36,17 @@ struct MainView: View {
 			}
 		}
 		.task {
+			if storeCoordinator !== appDelegate.storeCoordinator {
+				storeCoordinator = appDelegate.storeCoordinator
+			}
 			await loginViewModel.checkStatus()
 		}
         .environment(\.careStore, storeCoordinator)
+		.onAppear {
+			if storeCoordinator !== appDelegate.storeCoordinator {
+				storeCoordinator = appDelegate.storeCoordinator
+			}
+		}
 		.onReceive(appDelegate.$storeCoordinator) { newStoreCoordinator in
 			guard storeCoordinator !== newStoreCoordinator else { return }
 			storeCoordinator = newStoreCoordinator

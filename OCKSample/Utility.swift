@@ -13,7 +13,19 @@ import ParseCareKit
 import ParseSwift
 import os.log
 
+// swiftlint:disable type_body_length
 class Utility {
+
+    static func defaultSeedStartDate(from currentDate: Date = Date()) -> Date {
+        if daysInThePastToGenerateSampleData < 0 {
+            return Calendar.current.date(
+                byAdding: .day,
+                value: daysInThePastToGenerateSampleData,
+                to: currentDate
+            ) ?? currentDate
+        }
+        return currentDate
+    }
 
     static func convertNonSendableDictionaryToSendable(_ dictionary: [String: Any]) -> [String: String] {
 		let sendableDictionary: [String: String] = dictionary.reduce(into: [:]) {
@@ -43,6 +55,57 @@ class Utility {
         return remoteClockUUID
     }
 
+    static func prepareRemoteClockForCurrentSeed() async throws -> (uuid: UUID, didRotateClock: Bool) {
+        var user = try await User.current()
+        guard let lastUserTypeSelected = user.lastTypeSelected else {
+            throw AppError.remoteClockIDNotAvailable
+        }
+
+        let defaults = UserDefaults.standard
+        let localSeedVersion = defaults.integer(forKey: Constants.hypertensionSeedVersionKey)
+
+        if let existingUUID = user.userTypeUUIDs?[lastUserTypeSelected],
+           user.hypertensionSeedVersion == Constants.hypertensionSeedVersion,
+           localSeedVersion == Constants.hypertensionSeedVersion {
+            return (existingUUID, false)
+        }
+
+        let newUUID = UUID()
+        if user.userTypeUUIDs == nil {
+            user.userTypeUUIDs = [lastUserTypeSelected: newUUID]
+        } else {
+            user.userTypeUUIDs?[lastUserTypeSelected] = newUUID
+        }
+        user.hypertensionSeedVersion = Constants.hypertensionSeedVersion
+        _ = try await user.save()
+        return (newUUID, true)
+    }
+
+    @MainActor
+    static func resetStoresForHypertensionSeedRotation() {
+        AppDelegateKey.defaultValue?.resetAppToInitialState()
+
+        #if os(watchOS)
+        let parseStore = OCKStore(
+            name: Constants.watchOSParseCareStoreName,
+            type: .onDisk()
+        )
+        #else
+        let parseStore = OCKStore(
+            name: Constants.iOSParseCareStoreName,
+            type: .onDisk()
+        )
+        #endif
+
+        do {
+            try parseStore.delete()
+        } catch {
+            Logger.utility.error("Could not reset parse store for seed rotation: \(error)")
+        }
+
+        PCKUtility.removeCache()
+    }
+
     static func setDefaultACL() async throws {
         var defaultACL = ParseACL()
         defaultACL.publicRead = false
@@ -52,7 +115,7 @@ class Utility {
 
     @MainActor
     static func setupRemoteAfterLogin() async throws {
-        let remoteUUID = try await Utility.getRemoteClockUUID()
+        let remoteClock = try await Utility.prepareRemoteClockForCurrentSeed()
         do {
             try await setDefaultACL()
         } catch {
@@ -63,9 +126,43 @@ class Utility {
             Logger.utility.error("Could not setup remotes, AppDelegate is nil")
             return
         }
-        try await appDelegate.setupRemotes(uuid: remoteUUID)
+        if remoteClock.didRotateClock {
+            resetStoresForHypertensionSeedRotation()
+        }
+        try await appDelegate.setupRemotes(uuid: remoteClock.uuid)
+        if remoteClock.didRotateClock {
+            try await seedHypertensionDataInCurrentStores()
+        }
         appDelegate.parseRemote.automaticallySynchronizes = true
         return
+    }
+
+    @MainActor
+    static func seedHypertensionDataInCurrentStores(
+        currentDate: Date = Date()
+    ) async throws {
+        guard let appDelegate = AppDelegateKey.defaultValue,
+              let store = appDelegate.store,
+              store.name != Constants.noCareStoreName else {
+            return
+        }
+
+        let startDate = defaultSeedStartDate(from: currentDate)
+        UserDefaults.standard.set(false, forKey: Constants.onboardingCompletedKey)
+        UserDefaults.standard.set(
+            Constants.hypertensionSeedVersion,
+            forKey: Constants.hypertensionSeedVersionKey
+        )
+        try await store.populateDefaultCarePlansTasksContacts(startDate: startDate)
+        #if os(iOS) || os(visionOS)
+        guard let healthKitStore = appDelegate.healthKitStore else {
+            return
+        }
+        try await healthKitStore.populateDefaultHealthKitTasks(startDate: startDate)
+        #endif
+        if startDate < currentDate {
+            try await store.populateSampleOutcomes(startDate: startDate)
+        }
     }
 
     static func updateInstallationWithDeviceToken(_ deviceToken: Data? = nil) async {
@@ -207,13 +304,161 @@ class Utility {
 		PCKUtility.removeCache()
 	}
 
+    @MainActor
+    class func checkIfOnboardingIsComplete() async -> Bool {
+        UserDefaults.standard.bool(forKey: Constants.onboardingCompletedKey)
+    }
+
+    @MainActor
+    static func migrateHypertensionTasksIfNeeded() async {
+        guard let appDelegate = AppDelegateKey.defaultValue,
+              let store = appDelegate.store,
+              store.name != Constants.noCareStoreName else {
+            return
+        }
+
+        let defaults = UserDefaults.standard
+
+        let currentTaskIDs = [
+            TaskID.onboarding,
+            AppTaskID.medicationChecklist,
+            AppTaskID.bpMeasurement,
+            AppTaskID.symptomsCheck,
+            AppTaskID.morningPrep,
+            AppTaskID.lowSodiumCheck,
+            AppTaskID.walkAssessment
+        ]
+        let legacyTaskIDs = [
+            TaskID.legacyOnboarding,
+            AppTaskID.reflection,
+            AppTaskID.bpMedicationAM,
+            AppTaskID.bpMedicationPM,
+            AppTaskID.exercise,
+            AppTaskID.rangeOfMotion,
+            AppTaskID.legacyEducation,
+            AppTaskID.legacyReflectionSurvey,
+            AppTaskID.legacyQualityOfLife,
+            AppTaskID.legacyWalkAssessment
+        ]
+        do {
+            var taskQuery = OCKTaskQuery()
+            taskQuery.ids = Array(Set(currentTaskIDs + legacyTaskIDs))
+            let tasks = try await store.fetchTasks(query: taskQuery)
+            let taskIDs = Set(tasks.map(\.id))
+            let hasCurrentTasks = currentTaskIDs.allSatisfy(taskIDs.contains)
+            let hasCurrentMeasurementSurvey = tasks.contains { task in
+                task.id == AppTaskID.bpMeasurement
+                    && task.card == .survey
+                    && (task.instructions?.contains("systolic and diastolic") ?? false)
+            }
+            let hasLegacyTasks = legacyTaskIDs.contains(where: taskIDs.contains)
+            let hasDuplicateTaskVersions = tasks.count > taskIDs.count
+
+            #if os(iOS) || os(visionOS)
+            guard let healthKitStore = appDelegate.healthKitStore else {
+                return
+            }
+            let currentHealthKitTaskIDs = [
+                AppTaskID.heartRate,
+                AppTaskID.restingHeartRate
+            ]
+            let legacyHealthKitTaskIDs = [
+                TaskID.steps,
+                TaskID.ovulationTestResult,
+                AppTaskID.legacyHeartRate,
+                AppTaskID.legacyRestingHeartRate,
+                AppTaskID.legacyActiveEnergy
+            ]
+
+            var healthKitQuery = OCKTaskQuery()
+            healthKitQuery.ids = Array(Set(currentHealthKitTaskIDs + legacyHealthKitTaskIDs))
+            let healthKitTasks = try await healthKitStore.fetchTasks(query: healthKitQuery)
+            let healthKitIDs = Set(healthKitTasks.map(\.id))
+
+            let hasCurrentHealthKitTasks = currentHealthKitTaskIDs.allSatisfy(healthKitIDs.contains)
+            let hasLegacyHealthKitTasks = legacyHealthKitTaskIDs.contains(where: healthKitIDs.contains)
+            let hasDuplicateHealthKitTaskVersions = healthKitTasks.count > healthKitIDs.count
+            #else
+            let hasCurrentHealthKitTasks = true
+            let hasLegacyHealthKitTasks = false
+            let hasDuplicateHealthKitTaskVersions = false
+            #endif
+
+            let needsSeedVersionUpdate =
+                defaults.integer(forKey: Constants.hypertensionSeedVersionKey)
+                != Constants.hypertensionSeedVersion
+
+            let hasDirtySeededTasks =
+                hasLegacyTasks
+                || hasLegacyHealthKitTasks
+                || hasDuplicateTaskVersions
+                || hasDuplicateHealthKitTaskVersions
+                || !hasCurrentMeasurementSurvey
+
+            guard needsSeedVersionUpdate
+                    || !hasCurrentTasks
+                    || !hasCurrentHealthKitTasks
+                    || hasDirtySeededTasks else {
+                return
+            }
+
+            let onboardingWasComplete = await checkIfOnboardingIsComplete()
+            let seedStartDate = hasDirtySeededTasks ? Date() : defaultSeedStartDate()
+
+            try await store.populateDefaultCarePlansTasksContacts(
+                startDate: seedStartDate,
+                preserveHistoricalWindow: !hasDirtySeededTasks
+            )
+            #if os(iOS) || os(visionOS)
+            try await healthKitStore.populateDefaultHealthKitTasks(startDate: seedStartDate)
+            #endif
+
+            if onboardingWasComplete {
+                try await markCurrentOnboardingCompleteIfNeeded(in: store)
+                defaults.set(true, forKey: Constants.onboardingCompletedKey)
+            }
+
+            defaults.set(
+                Constants.hypertensionSeedVersion,
+                forKey: Constants.hypertensionSeedVersionKey
+            )
+
+            NotificationCenter.default.post(
+                .init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
+            )
+        } catch {
+            Logger.utility.error("Could not migrate hypertension tasks: \(error)")
+        }
+    }
+
+    @MainActor
+    private static func markCurrentOnboardingCompleteIfNeeded(
+        in store: OCKStore
+    ) async throws {
+        var query = OCKEventQuery(for: Date())
+        query.taskIDs = [TaskID.onboarding]
+
+        let events = try await store.fetchEvents(query: query)
+        guard let event = events.first, event.outcome == nil else {
+            return
+        }
+
+        let outcome = OCKOutcome(
+            taskUUID: event.task.uuid,
+            taskOccurrenceIndex: event.scheduleEvent.occurrence,
+            values: [OCKOutcomeValue(Date())]
+        )
+        _ = try await store.addOutcomes([outcome])
+    }
+
     #if os(iOS) || os(visionOS)
 	@MainActor
 	static func requestHealthKitPermissions() {
+		UserDefaults.standard.set(true, forKey: Constants.healthPermissionsRequestedKey)
 		AppDelegateKey.defaultValue?.healthKitStore.requestHealthKitPermissionsForAllTasksInStore { error in
-            guard let error = error else {
-                DispatchQueue.main.async {
-                    // swiftlint:disable:next line_length
+	            guard let error = error else {
+	                DispatchQueue.main.async {
+	                    // swiftlint:disable:next line_length
                     NotificationCenter.default.post(.init(name: Notification.Name(rawValue: Constants.finishedAskingForPermission)))
                 }
                 return
@@ -223,3 +468,4 @@ class Utility {
     }
     #endif
 }
+// swiftlint:enable type_body_length

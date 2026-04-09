@@ -18,8 +18,6 @@ struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @ObservedObject var loginViewModel: LoginViewModel
     @State var isPresentingAddTask = false
-    @State var isPresentingManageTasks = false
-    @Environment(\.appDelegate) private var appDelegate
 
     var body: some View {
         NavigationView {
@@ -78,35 +76,14 @@ struct ProfileView: View {
                 })
                 .background(Color(.red))
                 .cornerRadius(15)
-
-                    if let store = appDelegate?.store {
-                        Button(action: { isPresentingManageTasks = true }) {
-                            Text("Manage Tasks")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .frame(width: 300, height: 50)
-                        }
-                        .background(Color(.systemBlue))
-                        .cornerRadius(15)
-                        .sheet(isPresented: $isPresentingManageTasks) {
-                            NavigationView {
-                                ManageTasksView(store: store)
-                            }
-                        }
-                    }
-                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add Task") {
                         isPresentingAddTask = true
                     }
                     .sheet(isPresented: $isPresentingAddTask) {
-                        if let store = appDelegate?.store {
-                            AddTaskView(store: store)
-                        } else {
-                            Text("Store unavailable")
-                        }
+                        CareKitTaskView()
                     }
                 }
             }

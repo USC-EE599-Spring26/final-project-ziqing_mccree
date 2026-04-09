@@ -154,14 +154,16 @@ struct InsightsView: View {
 		return interval
 	}
 
-	private func determineDataStrategy(for taskID: String) -> CKEDataSeriesConfiguration.DataStrategy {
-		switch taskID {
-		case AppTaskID.bpMeasurement:
-			return .max
-		default:
-			return .mean
+		private func determineDataStrategy(for taskID: String) -> CKEDataSeriesConfiguration.DataStrategy {
+			switch taskID {
+			case AppTaskID.bpMeasurement:
+				return .max
+			case AppTaskID.heartRate, AppTaskID.restingHeartRate:
+				return .mean
+			default:
+				return .mean
+			}
 		}
-	}
 
 	private func setupChartPropertiesForSegmentSelection(_ segmentValue: Int) {
 		let now = Date()
