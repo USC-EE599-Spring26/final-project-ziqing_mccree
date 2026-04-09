@@ -11,8 +11,6 @@
 		18A09E5F2F760C5D0085571B /* ResearchKitSwiftUI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 18A09E5B2F760C320085571B /* ResearchKitSwiftUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		18A09E612F760C680085571B /* ResearchKitSwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 18A09E5B2F760C320085571B /* ResearchKitSwiftUI.framework */; };
 		18A09E622F760C680085571B /* ResearchKitSwiftUI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 18A09E5B2F760C320085571B /* ResearchKitSwiftUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		18A09E642F760C700085571B /* ResearchKitSwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 18A09E5B2F760C320085571B /* ResearchKitSwiftUI.framework */; };
-		18A09E652F760C700085571B /* ResearchKitSwiftUI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 18A09E5B2F760C320085571B /* ResearchKitSwiftUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		18BCAC352F59F9490067AC75 /* OCKStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F03A962786098F00E5AFB4 /* OCKStore.swift */; };
 		18BCACA12F60E2190067AC75 /* CareTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCACA02F60E1F40067AC75 /* CareTask.swift */; };
 		18BCACA22F60E2190067AC75 /* CareTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18BCACA02F60E1F40067AC75 /* CareTask.swift */; };
@@ -314,7 +312,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				18A09E652F760C700085571B /* ResearchKitSwiftUI.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -470,7 +467,6 @@
 			files = (
 				707D29762DCBE89600980253 /* ParseCareKit in Frameworks */,
 				707D292D2DCBE5E500980253 /* RealityKitContent in Frameworks */,
-				18A09E642F760C700085571B /* ResearchKitSwiftUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1229,21 +1225,16 @@
 				707D29482DCBE68500980253 /* FontColorKey.swift in Sources */,
 				707D294A2DCBE68500980253 /* CustomStylerKey.swift in Sources */,
 				707D294B2DCBE68500980253 /* TipView.swift in Sources */,
-				A1B2C3012F8A10010000000F /* OCKTask+ResearchKitSwiftUI.swift in Sources */,
 				707D29712DCBE6A000980253 /* OCKLocalization.swift in Sources */,
 				707D294C2DCBE68500980253 /* StoreCoordinatorKey.swift in Sources */,
 				707D294D2DCBE68500980253 /* InsightsView.swift in Sources */,
 				707D294E2DCBE68500980253 /* OCKHealthKitPassthroughStore.swift in Sources */,
 				707D294F2DCBE68500980253 /* OCKStore+SampleData.swift in Sources */,
 				707D29502DCBE68500980253 /* TaskID.swift in Sources */,
-				A1B2C3042F8A100100000010 /* CareView.swift in Sources */,
-				A1B2C3012F8A10010000000E /* Survey.swift in Sources */,
 				707D29522DCBE68500980253 /* AppDelegateKey.swift in Sources */,
 				707D29532DCBE68500980253 /* Logger.swift in Sources */,
 				707D29542DCBE68500980253 /* TintColorFlipKey.swift in Sources */,
 				707D29552DCBE68500980253 /* Installation.swift in Sources */,
-				A1B2C3012F8A100100000012 /* CardEnabledEnvironmentKey.swift in Sources */,
-				A1B2C3042F8A100100000004 /* OCKTask+CareTask.swift in Sources */,
 				18BCACA12F60E2190067AC75 /* CareTask.swift in Sources */,
 				37E450CC2F553CAA007AC644 /* OCKDimensionStyle.swift in Sources */,
 				707D29562DCBE68500980253 /* SplashScreenView.swift in Sources */,
@@ -1256,35 +1247,23 @@
 				707D295C2DCBE68500980253 /* AppDelegate.swift in Sources */,
 				707D295D2DCBE68500980253 /* LoginViewModel.swift in Sources */,
 				70B8E0A62F0EC1CA00440FCA /* Mutex.swift in Sources */,
-				A1B2C3042F8A10010000000C /* RangeOfMotion.swift in Sources */,
 				707D295E2DCBE68500980253 /* Utility.swift in Sources */,
-				A1B2C3042F8A100100000011 /* OCKSampleApp.swift in Sources */,
 				707D29602DCBE68500980253 /* SessionDelegate.swift in Sources */,
 				707D29612DCBE68500980253 /* Styler.swift in Sources */,
 				707D29622DCBE68500980253 /* ProfileViewModel.swift in Sources */,
 				707D29632DCBE68500980253 /* AppDelegate+UIApplicationDelegate.swift in Sources */,
 				37E450D32F553DA7007AC644 /* CareKitTaskViewModel.swift in Sources */,
-				A1B2C3042F8A10010000000F /* CareViewController.swift in Sources */,
 				707D29652DCBE68500980253 /* PCKUtility.swift in Sources */,
 				707D29662DCBE68500980253 /* UserType.swift in Sources */,
 				707D29672DCBE68500980253 /* ContactView.swift in Sources */,
 				707D29682DCBE68500980253 /* NoHighlightStyle.swift in Sources */,
-				A1B2C3042F8A10010000000D /* SurveyViewSynchronizer.swift in Sources */,
-				A1B2C3042F8A100100000008 /* Consent.swift in Sources */,
 				707D29692DCBE68500980253 /* LocalSyncSessionDelegate.swift in Sources */,
 				707D296A2DCBE68500980253 /* Constants.swift in Sources */,
 				707D296B2DCBE68500980253 /* AppDelegate+ParseRemoteDelegate.swift in Sources */,
 				707D296C2DCBE68500980253 /* RemoteSessionDelegate.swift in Sources */,
-				A1B2C3042F8A100100000002 /* OCKAnyEvent+Custom.swift in Sources */,
-				A1B2C3042F8A100100000006 /* Surveyable.swift in Sources */,
 				707D296D2DCBE68500980253 /* OCKPatient+Parse.swift in Sources */,
-				A1B2C3012F8A100100000015 /* CarePlanID.swift in Sources */,
 				707D296E2DCBE68500980253 /* ColorStyler.swift in Sources */,
-				A1B2C3042F8A10010000000E /* MyCustomCardView.swift in Sources */,
-				A1B2C3042F8A10010000000A /* Onboard.swift in Sources */,
 				37E450C72F553C5C007AC644 /* CareKitCard.swift in Sources */,
-				A1B2C3042F8A100100000012 /* MainView.swift in Sources */,
-				A1B2C3042F8A100100000013 /* MainTabView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1308,33 +1287,24 @@
 				918FDEB8271B49060045A0EF /* Logger.swift in Sources */,
 				37E450CB2F553CAA007AC644 /* OCKDimensionStyle.swift in Sources */,
 				91AD923B24A4C42D00925D4D /* CareView.swift in Sources */,
-				A1B2C3042F8A100100000001 /* OCKAnyEvent+Custom.swift in Sources */,
-				A1B2C3042F8A100100000003 /* OCKTask+CareTask.swift in Sources */,
 				70F921A927CA9A4000368CEC /* CustomStylerKey.swift in Sources */,
 				7099D20629E98DFF0037CD8E /* TaskID.swift in Sources */,
-				A1B2C3012F8A10010000000C /* Survey.swift in Sources */,
 				18BCAC352F59F9490067AC75 /* OCKStore.swift in Sources */,
 				7075151E28DE1A8300A57A0C /* MainView.swift in Sources */,
-				A1B2C3012F8A100100000011 /* CardEnabledEnvironmentKey.swift in Sources */,
-				A1B2C3012F8A100100000014 /* CarePlanID.swift in Sources */,
 				707D28D02DCA8AAB00980253 /* OCKStore+SampleData.swift in Sources */,
 				70B8E0A72F0EC1CA00440FCA /* Mutex.swift in Sources */,
 				70A98D62278A2683009B58F2 /* Styler.swift in Sources */,
 				91693818271B5E1600A634ED /* Constants.swift in Sources */,
 				70E3422B2DB0581C005124F9 /* MainTabView.swift in Sources */,
 				7075152028DE1BB400A57A0C /* LoginView.swift in Sources */,
-				A1B2C3042F8A100100000005 /* Surveyable.swift in Sources */,
 				70E342292DB05813005124F9 /* ProfileView.swift in Sources */,
 				70F921B227CAC16E00368CEC /* RemoteSessionDelegate.swift in Sources */,
 				37E450D52F553E05007AC644 /* OCKHealthKitTask+Card.swift in Sources */,
 				70E342302DB062F8005124F9 /* NoHighlightStyle.swift in Sources */,
-				A1B2C3042F8A10010000000B /* RangeOfMotion.swift in Sources */,
 				7094DCF32DC340E40039CA64 /* SplashScreenView.swift in Sources */,
 				70221F2F28D7CDE400971195 /* AppDelegate+ParseRemoteDelegate.swift in Sources */,
 				7083A857279CA40F00B3832E /* PCKUtility.swift in Sources */,
 				705572402DC1EAEE008E5B0A /* InsightsView.swift in Sources */,
-				A1B2C3042F8A100100000007 /* Consent.swift in Sources */,
-				A1B2C3042F8A100100000009 /* Onboard.swift in Sources */,
 				91AD923924A4C42D00925D4D /* OCKWatchSampleApp.swift in Sources */,
 				70F03AA627860B2500E5AFB4 /* OCKPatient+Parse.swift in Sources */,
 				70221F3828D8C0CB00971195 /* AppDelegateKey.swift in Sources */,
@@ -1351,7 +1321,6 @@
 				7099D20C29E98E400037CD8E /* InstallationChannel.swift in Sources */,
 				70308886258273D400FFABB6 /* LoginViewModel.swift in Sources */,
 				70F921B127CAC16E00368CEC /* SessionDelegate.swift in Sources */,
-				A1B2C3012F8A10010000000D /* OCKTask+ResearchKitSwiftUI.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
