@@ -6,15 +6,15 @@
 //  Copyright © 2020 Network Reconnaissance Lab. All rights reserved.
 //
 
-import CareKitUI
-import CareKitStore
 import CareKit
+import CareKitStore
+import CareKitUI
 import os.log
 import SwiftUI
 
 struct ProfileView: View {
-    private static var query = OCKPatientQuery(for: Date())
-    @CareStoreFetchRequest(query: query) private var patients
+    @CareStoreFetchRequest(query: ProfileViewModel.queryPatient()) private var patients
+    @CareStoreFetchRequest(query: ProfileViewModel.queryContacts()) private var contacts
     @StateObject private var viewModel = ProfileViewModel()
     @ObservedObject var loginViewModel: LoginViewModel
     @State var isPresentingAddTask = false
@@ -22,34 +22,43 @@ struct ProfileView: View {
     var body: some View {
         NavigationView {
             VStack {
-                VStack(alignment: .leading) {
-                    TextField("First Name",
-                              text: $viewModel.firstName)
-                    .padding()
-                    .cornerRadius(20.0)
-                    .shadow(radius: 10.0, x: 20, y: 10)
+                VStack {
+#if os(iOS)
+                    ProfileImageView(viewModel: viewModel)
+#endif
+                    Form {
+                        Section(header: Text("About")) {
+                            TextField("First Name", text: $viewModel.firstName)
+                            TextField("Last Name", text: $viewModel.lastName)
+                            DatePicker(
+                                "Birthday",
+                                selection: $viewModel.birthday,
+                                displayedComponents: [DatePickerComponents.date]
+                            )
+                            TextField("Allergies", text: $viewModel.allergies)
+                        }
 
-                    TextField("Last Name",
-                              text: $viewModel.lastName)
-                    .padding()
-                    .cornerRadius(20.0)
-                    .shadow(radius: 10.0, x: 20, y: 10)
-
-                    DatePicker("Birthday",
-                               selection: $viewModel.birthday,
-                               displayedComponents: [DatePickerComponents.date])
-                    .padding()
-                    .cornerRadius(20.0)
-                    .shadow(radius: 10.0, x: 20, y: 10)
+                        Section(header: Text("Contact")) {
+                            TextField("Street", text: $viewModel.street)
+                            TextField("City", text: $viewModel.city)
+                            TextField("State", text: $viewModel.state)
+                            TextField("Postal code", text: $viewModel.zipcode)
+                            TextField("Country", text: $viewModel.country)
+                            TextField("Email", text: $viewModel.emailAddress)
+                                .keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.never)
+                            TextField("Messaging number", text: $viewModel.messagingNumber)
+                                .keyboardType(.phonePad)
+                            TextField("Phone number", text: $viewModel.phoneNumber)
+                                .keyboardType(.phonePad)
+                            TextField("Other contact info", text: $viewModel.otherContactInfo)
+                        }
+                    }
                 }
 
                 Button(action: {
                     Task {
-                        do {
-                            try await viewModel.saveProfile()
-                        } catch {
-                            Logger.profile.error("Error saving profile: \(error)")
-                        }
+                        await viewModel.saveProfile()
                     }
                 }, label: {
                     Text("Save Profile")
@@ -61,8 +70,6 @@ struct ProfileView: View {
                 .background(Color(.green))
                 .cornerRadius(15)
 
-                // Notice that "action" is a closure (which is essentially
-                // a function as argument like we discussed in class)
                 Button(action: {
                     Task {
                         await loginViewModel.logout()
@@ -78,6 +85,16 @@ struct ProfileView: View {
                 .cornerRadius(15)
             }
             .toolbar {
+#if os(iOS)
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("My Contact") {
+                        viewModel.isPresentingContact = true
+                    }
+                    .sheet(isPresented: $viewModel.isPresentingContact) {
+                        MyContactView()
+                    }
+                }
+#endif
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Add Task") {
                         isPresentingAddTask = true
@@ -87,9 +104,26 @@ struct ProfileView: View {
                     }
                 }
             }
+#if os(iOS)
+            .sheet(isPresented: $viewModel.isPresentingImagePicker) {
+                ImagePicker(image: $viewModel.profileUIImage)
+            }
+#endif
+            .alert(isPresented: $viewModel.isShowingSaveAlert) {
+                Alert(
+                    title: Text("Update"),
+                    message: Text(viewModel.alertMessage),
+                    dismissButton: .default(Text("Ok"), action: {
+                        viewModel.isShowingSaveAlert = false
+                    })
+                )
+            }
         }
         .onReceive(patients.publisher) { publishedPatient in
             viewModel.updatePatient(publishedPatient.result)
+        }
+        .onReceive(contacts.publisher) { publishedContact in
+            viewModel.updateContact(publishedContact.result)
         }
     }
 }
@@ -97,6 +131,7 @@ struct ProfileView: View {
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         ProfileView(loginViewModel: .init())
+            .accentColor(Color.accentColor)
             .environment(\.careStore, Utility.createPreviewStore())
     }
 }

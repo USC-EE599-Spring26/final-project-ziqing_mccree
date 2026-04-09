@@ -64,9 +64,17 @@ class Utility {
         let defaults = UserDefaults.standard
         let localSeedVersion = defaults.integer(forKey: Constants.hypertensionSeedVersionKey)
 
-        if let existingUUID = user.userTypeUUIDs?[lastUserTypeSelected],
-           user.hypertensionSeedVersion == Constants.hypertensionSeedVersion,
-           localSeedVersion == Constants.hypertensionSeedVersion {
+        if let existingUUID = user.userTypeUUIDs?[lastUserTypeSelected] {
+            if user.hypertensionSeedVersion != Constants.hypertensionSeedVersion {
+                user.hypertensionSeedVersion = Constants.hypertensionSeedVersion
+                _ = try await user.save()
+            }
+            if localSeedVersion != Constants.hypertensionSeedVersion {
+                defaults.set(
+                    Constants.hypertensionSeedVersion,
+                    forKey: Constants.hypertensionSeedVersionKey
+                )
+            }
             return (existingUUID, false)
         }
 
@@ -78,6 +86,10 @@ class Utility {
         }
         user.hypertensionSeedVersion = Constants.hypertensionSeedVersion
         _ = try await user.save()
+        defaults.set(
+            Constants.hypertensionSeedVersion,
+            forKey: Constants.hypertensionSeedVersionKey
+        )
         return (newUUID, true)
     }
 
