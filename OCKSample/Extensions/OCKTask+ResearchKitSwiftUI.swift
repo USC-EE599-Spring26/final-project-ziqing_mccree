@@ -7,6 +7,7 @@ import CareKitStore
 import Foundation
 
 extension OCKTask {
+#if os(iOS)
     var uiKitSurvey: Survey? {
         get {
             guard let surveyInfo = userInfo?[Constants.uiKitSurvey],
@@ -22,6 +23,7 @@ extension OCKTask {
             userInfo?[Constants.uiKitSurvey] = newValue?.rawValue
         }
     }
+#endif
 
     var linkURL: String? {
         get { userInfo?[Constants.linkURL] }
