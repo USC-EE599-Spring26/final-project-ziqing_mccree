@@ -32,23 +32,16 @@ struct CustomTaskItem: Identifiable {
 	let isHealthKitTask: Bool
 }
 
-private struct CustomTaskRecord: Codable, Identifiable {
-	let id: String
-	let title: String
-	let detail: String
-	let isHealthKitTask: Bool
-}
-
 @MainActor
 class CareKitTaskViewModel: ObservableObject {
 
 	@Published var error: AppError?
 	@Published var customTasks: [CustomTaskItem] = []
 
-	private let customTaskRecordsKey = "CareKitTaskViewModel.CustomTaskRecords"
-
 	init() {
-		customTasks = loadCustomTaskItems()
+		Task {
+			await reloadCustomTasks()
+		}
 	}
 
 	func addTask(
@@ -77,12 +70,13 @@ class CareKitTaskViewModel: ObservableObject {
 			instructions,
 			fallback: defaultInstructions(for: cardType)
 		)
-			task.asset = sanitizedAsset(
-				asset,
-				fallback: defaultAsset(for: cardType)
-			)
-			task.card = cardType
-			task.impactsAdherence = [.button, .checklist, .simple].contains(cardType)
+		task.asset = sanitizedAsset(
+			asset,
+			fallback: defaultAsset(for: cardType)
+		)
+		task.card = cardType
+		task.priority = 100
+		task.impactsAdherence = [.button, .checklist, .simple].contains(cardType)
 
 		if cardType == .link {
 			task.linkURL = linkURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
@@ -90,42 +84,36 @@ class CareKitTaskViewModel: ObservableObject {
 				: "https://www.heart.org/en/health-topics/high-blood-pressure"
 		}
 
-			if cardType == .featured {
-				task.featuredMessage = sanitizedInstructions(
-					featuredMessage,
-					fallback: "Launch a guided daily walking check."
-				)
+		if cardType == .featured {
+			task.featuredMessage = sanitizedInstructions(
+				featuredMessage,
+				fallback: "Launch a guided daily walking check."
+			)
 #if os(iOS)
-				task.uiKitSurvey = .rangeOfMotion
+			task.uiKitSurvey = .rangeOfMotion
 #endif
-			}
+		}
 
-			if cardType == .uiKitSurvey {
+		if cardType == .uiKitSurvey {
 #if os(iOS)
-				task.uiKitSurvey = .rangeOfMotion
+			task.uiKitSurvey = .rangeOfMotion
 #endif
-			}
+		}
 
-			if cardType == .survey {
+		if cardType == .survey {
 #if os(iOS)
-				task.surveySteps = HypertensionSurveyFactory.measurementSurveySteps(
-					taskID: task.id
-				)
+			task.surveySteps = HypertensionSurveyFactory.measurementSurveySteps(
+				taskID: task.id
+			)
 #else
-				task.card = .instruction
+			task.card = .instruction
 #endif
-			}
+		}
 
 		do {
 			_ = try await appDelegate.store.addTasksIfNotPresent([task])
-			appendCustomTaskRecord(
-				.init(
-					id: task.id,
-					title: task.title ?? task.id,
-					detail: "Task • \(task.card.rawValue)",
-					isHealthKitTask: false
-				)
-			)
+			Utility.synchronizeStoreIfRemoteEnabled()
+			await reloadCustomTasks()
 			Logger.careKitTask.info("Saved task: \(task.id, privacy: .private)")
 			NotificationCenter.default.post(
 				.init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
@@ -183,18 +171,13 @@ class CareKitTaskViewModel: ObservableObject {
 			fallback: defaultHealthKitAsset(for: quantityChoice)
 		)
 		healthKitTask.card = cardType
+		healthKitTask.priority = 100
 		healthKitTask.impactsAdherence = false
 
 		do {
 			_ = try await appDelegate.healthKitStore.addTasksIfNotPresent([healthKitTask])
-			appendCustomTaskRecord(
-				.init(
-					id: healthKitTask.id,
-					title: healthKitTask.title ?? healthKitTask.id,
-					detail: "HealthKitTask • \(healthKitTask.card.rawValue)",
-					isHealthKitTask: true
-				)
-			)
+			Utility.synchronizeStoreIfRemoteEnabled()
+			await reloadCustomTasks()
 			Logger.careKitTask.info("Saved HealthKitTask: \(healthKitTask.id, privacy: .private)")
 			NotificationCenter.default.post(
 				.init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
@@ -292,7 +275,47 @@ class CareKitTaskViewModel: ObservableObject {
 @MainActor
 extension CareKitTaskViewModel {
 	func reloadCustomTasks() async {
-		customTasks = loadCustomTaskItems()
+		guard let appDelegate = AppDelegateKey.defaultValue else {
+			customTasks = []
+			return
+		}
+
+		do {
+			var taskQuery = OCKTaskQuery()
+			taskQuery.excludesTasksWithNoEvents = false
+
+			let standardTasks = try await appDelegate.store.fetchTasks(query: taskQuery)
+			let healthKitTasks = try await appDelegate.healthKitStore.fetchTasks(query: taskQuery)
+
+			let standardItems = standardTasks
+				.filter { $0.id.hasPrefix("custom_") }
+				.filter { !$0.id.hasPrefix("custom_hk_") }
+				.map {
+					CustomTaskItem(
+						id: $0.id,
+						title: $0.title ?? $0.id,
+						detail: "Task • \($0.card.rawValue)",
+						isHealthKitTask: false
+					)
+				}
+
+			let healthKitItems = healthKitTasks
+				.filter { $0.id.hasPrefix("custom_hk_") }
+				.map {
+					CustomTaskItem(
+						id: $0.id,
+						title: $0.title ?? $0.id,
+						detail: "HealthKitTask • \($0.card.rawValue)",
+						isHealthKitTask: true
+					)
+				}
+
+			customTasks = (standardItems + healthKitItems)
+				.sorted { $0.title < $1.title }
+		} catch {
+			self.error = AppError.errorString("Could not load tasks: \(error.localizedDescription)")
+			customTasks = []
+		}
 	}
 
 	func deleteTask(_ item: CustomTaskItem) async {
@@ -315,7 +338,7 @@ extension CareKitTaskViewModel {
 					_ = try await appDelegate.store.deleteTasks([taskToDelete])
 				}
 			}
-			removeCustomTaskRecord(id: item.id)
+			Utility.synchronizeStoreIfRemoteEnabled()
 			NotificationCenter.default.post(
 				.init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
 			)
@@ -325,42 +348,4 @@ extension CareKitTaskViewModel {
 		}
 	}
 
-	private func loadCustomTaskItems() -> [CustomTaskItem] {
-		loadCustomTaskRecords().map {
-			CustomTaskItem(
-				id: $0.id,
-				title: $0.title,
-				detail: $0.detail,
-				isHealthKitTask: $0.isHealthKitTask
-			)
-		}
-	}
-
-	private func appendCustomTaskRecord(_ record: CustomTaskRecord) {
-		var records = loadCustomTaskRecords()
-		records.removeAll { $0.id == record.id }
-		records.append(record)
-		saveCustomTaskRecords(records)
-		customTasks = loadCustomTaskItems()
-	}
-
-	private func removeCustomTaskRecord(id: String) {
-		let records = loadCustomTaskRecords().filter { $0.id != id }
-		saveCustomTaskRecords(records)
-		customTasks = loadCustomTaskItems()
-	}
-
-	private func loadCustomTaskRecords() -> [CustomTaskRecord] {
-		guard let data = UserDefaults.standard.data(forKey: customTaskRecordsKey) else {
-			return []
-		}
-		return (try? JSONDecoder().decode([CustomTaskRecord].self, from: data)) ?? []
-	}
-
-	private func saveCustomTaskRecords(_ records: [CustomTaskRecord]) {
-		guard let data = try? JSONEncoder().encode(records) else {
-			return
-		}
-		UserDefaults.standard.set(data, forKey: customTaskRecordsKey)
-	}
 }

@@ -136,11 +136,15 @@ class ProfileViewModel: ObservableObject { // swiftlint:disable:this type_body_l
 #endif
             try await savePatient()
             try await saveContact()
-            if !profilePictureVerificationMessage.isEmpty {
-                alertMessage += "\n\(profilePictureVerificationMessage)"
-            }
         } catch {
             alertMessage = "Could not save profile: \(error)"
+            isShowingSaveAlert = true
+            return
+        }
+
+        Utility.synchronizeStoreIfRemoteEnabled()
+        if !profilePictureVerificationMessage.isEmpty {
+            alertMessage += "\n\(profilePictureVerificationMessage)"
         }
         isShowingSaveAlert = true
     }

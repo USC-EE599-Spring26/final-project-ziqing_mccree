@@ -12,6 +12,31 @@ import CareKitStore
 import HealthKit
 import os.log
 
+private extension OCKHealthKitTask {
+    func needsSeedMetadataUpdate(from expected: OCKHealthKitTask) -> Bool {
+        // 我这里和普通 task 保持一致，也把 schedule 修正进来，避免老用户已有任务今天没有 event。
+        title != expected.title
+            || instructions != expected.instructions
+            || asset != expected.asset
+            || schedule != expected.schedule
+            || impactsAdherence != expected.impactsAdherence
+            || card != expected.card
+            || priority != expected.priority
+    }
+
+    func applyingSeedMetadata(from expected: OCKHealthKitTask) -> OCKHealthKitTask {
+        var updated = self
+        updated.title = expected.title
+        updated.instructions = expected.instructions
+        updated.asset = expected.asset
+        updated.schedule = expected.schedule
+        updated.impactsAdherence = expected.impactsAdherence
+        updated.card = expected.card
+        updated.priority = expected.priority
+        return updated
+    }
+}
+
 extension OCKHealthKitPassthroughStore {
 
     func populateDefaultHealthKitTasks(
@@ -81,34 +106,37 @@ extension OCKHealthKitPassthroughStore {
         restingHeartRate.priority = 60
         restingHeartRate.impactsAdherence = false
 
-        try await replaceSeededHealthKitTasks(
-            with: [heartRate, restingHeartRate],
-            legacyIDs: [
-                TaskID.steps,
-                TaskID.ovulationTestResult,
-                AppTaskID.legacyHeartRate,
-                AppTaskID.legacyRestingHeartRate,
-                AppTaskID.legacyActiveEnergy
-            ]
-        )
+        try await addOrUpdateSeededHealthKitTasksIfNeeded([heartRate, restingHeartRate])
     }
 
-    private func replaceSeededHealthKitTasks(
-        with tasks: [OCKHealthKitTask],
-        legacyIDs: [String]
-    ) async throws {
-        let idsToReplace = Array(Set(tasks.map(\.id) + legacyIDs))
+    private func addOrUpdateSeededHealthKitTasksIfNeeded(_ tasks: [OCKHealthKitTask]) async throws {
+        // 我这里和普通 task 一样，只补齐/更新当前版本 metadata，不主动清理 outcome。
+        let taskIDs = tasks.map(\.id)
         var query = OCKTaskQuery()
-        query.ids = idsToReplace
+        query.ids = taskIDs
 
-        while true {
-            let existingTasks = try await fetchTasks(query: query)
-            guard !existingTasks.isEmpty else {
-                break
+        let existingTasks = try await fetchTasks(query: query)
+        var tasksToAdd = [OCKHealthKitTask]()
+        var tasksToUpdate = [OCKHealthKitTask]()
+
+        tasks.forEach { task in
+            guard let existingTask = existingTasks.first(where: { $0.id == task.id }) else {
+                tasksToAdd.append(task)
+                return
             }
-            _ = try await deleteTasks(existingTasks)
+
+            guard existingTask.needsSeedMetadataUpdate(from: task) else {
+                return
+            }
+            tasksToUpdate.append(existingTask.applyingSeedMetadata(from: task))
         }
 
-        _ = try await addTasks(tasks)
+        if !tasksToAdd.isEmpty {
+            _ = try await addTasks(tasksToAdd)
+        }
+
+        if !tasksToUpdate.isEmpty {
+            _ = try await updateTasks(tasksToUpdate)
+        }
     }
 }

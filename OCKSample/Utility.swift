@@ -61,20 +61,7 @@ class Utility {
             throw AppError.remoteClockIDNotAvailable
         }
 
-        let defaults = UserDefaults.standard
-        let localSeedVersion = defaults.integer(forKey: Constants.hypertensionSeedVersionKey)
-
         if let existingUUID = user.userTypeUUIDs?[lastUserTypeSelected] {
-            if user.hypertensionSeedVersion != Constants.hypertensionSeedVersion {
-                user.hypertensionSeedVersion = Constants.hypertensionSeedVersion
-                _ = try await user.save()
-            }
-            if localSeedVersion != Constants.hypertensionSeedVersion {
-                defaults.set(
-                    Constants.hypertensionSeedVersion,
-                    forKey: Constants.hypertensionSeedVersionKey
-                )
-            }
             return (existingUUID, false)
         }
 
@@ -84,38 +71,8 @@ class Utility {
         } else {
             user.userTypeUUIDs?[lastUserTypeSelected] = newUUID
         }
-        user.hypertensionSeedVersion = Constants.hypertensionSeedVersion
         _ = try await user.save()
-        defaults.set(
-            Constants.hypertensionSeedVersion,
-            forKey: Constants.hypertensionSeedVersionKey
-        )
         return (newUUID, true)
-    }
-
-    @MainActor
-    static func resetStoresForHypertensionSeedRotation() {
-        AppDelegateKey.defaultValue?.resetAppToInitialState()
-
-        #if os(watchOS)
-        let parseStore = OCKStore(
-            name: Constants.watchOSParseCareStoreName,
-            type: .onDisk()
-        )
-        #else
-        let parseStore = OCKStore(
-            name: Constants.iOSParseCareStoreName,
-            type: .onDisk()
-        )
-        #endif
-
-        do {
-            try parseStore.delete()
-        } catch {
-            Logger.utility.error("Could not reset parse store for seed rotation: \(error)")
-        }
-
-        PCKUtility.removeCache()
     }
 
     static func setDefaultACL() async throws {
@@ -138,15 +95,46 @@ class Utility {
             Logger.utility.error("Could not setup remotes, AppDelegate is nil")
             return
         }
-        if remoteClock.didRotateClock {
-            resetStoresForHypertensionSeedRotation()
-        }
         try await appDelegate.setupRemotes(uuid: remoteClock.uuid)
         if remoteClock.didRotateClock {
             try await seedHypertensionDataInCurrentStores()
         }
         appDelegate.parseRemote.automaticallySynchronizes = true
         return
+    }
+
+    @MainActor
+    static func synchronizeStoreIfRemoteEnabled() {
+        guard isSyncingWithRemote,
+              let store = AppDelegateKey.defaultValue?.store else {
+            return
+        }
+
+        store.synchronize { error in
+            let errorString = error?.localizedDescription ?? "Successful sync with remote!"
+            Logger.utility.info("\(errorString)")
+        }
+    }
+
+    @MainActor
+    private static func synchronizeStoreIfRemoteEnabledAndWait() async -> Bool {
+        guard isSyncingWithRemote,
+              let store = AppDelegateKey.defaultValue?.store else {
+            return true
+        }
+
+        return await withCheckedContinuation { continuation in
+            store.synchronize { error in
+                let errorString = error?.localizedDescription ?? "Successful sync with remote!"
+                Logger.utility.info("\(errorString)")
+                continuation.resume(returning: error == nil)
+            }
+        }
+    }
+
+    @MainActor
+    static func synchronizeStoreIfPossible() {
+        synchronizeStoreIfRemoteEnabled()
     }
 
     @MainActor
@@ -161,10 +149,6 @@ class Utility {
 
         let startDate = defaultSeedStartDate(from: currentDate)
         UserDefaults.standard.set(false, forKey: Constants.onboardingCompletedKey)
-        UserDefaults.standard.set(
-            Constants.hypertensionSeedVersion,
-            forKey: Constants.hypertensionSeedVersionKey
-        )
         try await store.populateDefaultCarePlansTasksContacts(startDate: startDate)
         #if os(iOS) || os(visionOS)
         guard let healthKitStore = appDelegate.healthKitStore else {
@@ -318,7 +302,21 @@ class Utility {
 
     @MainActor
     class func checkIfOnboardingIsComplete() async -> Bool {
-        UserDefaults.standard.bool(forKey: Constants.onboardingCompletedKey)
+        var query = OCKOutcomeQuery()
+        query.taskIDs = TaskID.onboardingIDs
+
+        guard let store = AppDelegateKey.defaultValue?.store else {
+            Logger.utility.error("CareKit store could not be unwrapped")
+            return false
+        }
+
+        do {
+            let outcomes = try await store.fetchAnyOutcomes(query: query)
+            return !outcomes.isEmpty
+        } catch {
+            Logger.utility.error("Could not fetch onboarding outcomes: \(error)")
+            return false
+        }
     }
 
     @MainActor
@@ -329,118 +327,51 @@ class Utility {
             return
         }
 
-        let defaults = UserDefaults.standard
-
-        let currentTaskIDs = [
-            TaskID.onboarding,
-            AppTaskID.medicationChecklist,
-            AppTaskID.bpMeasurement,
-            AppTaskID.symptomsCheck,
-            AppTaskID.morningPrep,
-            AppTaskID.lowSodiumCheck,
-            AppTaskID.walkAssessment
-        ]
-        let legacyTaskIDs = [
-            TaskID.legacyOnboarding,
-            AppTaskID.reflection,
-            AppTaskID.bpMedicationAM,
-            AppTaskID.bpMedicationPM,
-            AppTaskID.exercise,
-            AppTaskID.rangeOfMotion,
-            AppTaskID.legacyEducation,
-            AppTaskID.legacyReflectionSurvey,
-            AppTaskID.legacyQualityOfLife,
-            AppTaskID.legacyWalkAssessment
-        ]
         do {
-            var taskQuery = OCKTaskQuery()
-            taskQuery.ids = Array(Set(currentTaskIDs + legacyTaskIDs))
-            let tasks = try await store.fetchTasks(query: taskQuery)
-            let taskIDs = Set(tasks.map(\.id))
-            let hasCurrentTasks = currentTaskIDs.allSatisfy(taskIDs.contains)
-            let hasCurrentMeasurementSurvey = tasks.contains { task in
-                task.id == AppTaskID.bpMeasurement
-                    && task.card == .survey
-                    && (task.instructions?.contains("systolic and diastolic") ?? false)
-            }
-            let hasLegacyTasks = legacyTaskIDs.contains(where: taskIDs.contains)
-            let hasDuplicateTaskVersions = tasks.count > taskIDs.count
-
-            #if os(iOS) || os(visionOS)
-            guard let healthKitStore = appDelegate.healthKitStore else {
-                return
-            }
-            let currentHealthKitTaskIDs = [
-                AppTaskID.heartRate,
-                AppTaskID.restingHeartRate
-            ]
-            let legacyHealthKitTaskIDs = [
-                TaskID.steps,
-                TaskID.ovulationTestResult,
-                AppTaskID.legacyHeartRate,
-                AppTaskID.legacyRestingHeartRate,
-                AppTaskID.legacyActiveEnergy
-            ]
-
-            var healthKitQuery = OCKTaskQuery()
-            healthKitQuery.ids = Array(Set(currentHealthKitTaskIDs + legacyHealthKitTaskIDs))
-            let healthKitTasks = try await healthKitStore.fetchTasks(query: healthKitQuery)
-            let healthKitIDs = Set(healthKitTasks.map(\.id))
-
-            let hasCurrentHealthKitTasks = currentHealthKitTaskIDs.allSatisfy(healthKitIDs.contains)
-            let hasLegacyHealthKitTasks = legacyHealthKitTaskIDs.contains(where: healthKitIDs.contains)
-            let hasDuplicateHealthKitTaskVersions = healthKitTasks.count > healthKitIDs.count
-            #else
-            let hasCurrentHealthKitTasks = true
-            let hasLegacyHealthKitTasks = false
-            let hasDuplicateHealthKitTaskVersions = false
-            #endif
-
-            let needsSeedVersionUpdate =
-                defaults.integer(forKey: Constants.hypertensionSeedVersionKey)
-                != Constants.hypertensionSeedVersion
-
-            let hasDirtySeededTasks =
-                hasLegacyTasks
-                || hasLegacyHealthKitTasks
-                || hasDuplicateTaskVersions
-                || hasDuplicateHealthKitTaskVersions
-                || !hasCurrentMeasurementSurvey
-
-            guard needsSeedVersionUpdate
-                    || !hasCurrentTasks
-                    || !hasCurrentHealthKitTasks
-                    || hasDirtySeededTasks else {
+            let didSync = await synchronizeStoreIfRemoteEnabledAndWait()
+            // 我这里保留老师项目的 populate 方式；弱网时只加一个保护：
+            // 老用户如果同步失败且本地完全没有 CareKit 数据，先不 seed，避免离线重装造出第二套默认任务。
+            if isSyncingWithRemote,
+               !didSync,
+               !(try await localStoreHasSeedableData(store)) {
+                Logger.utility.info("Skipping seed because remote sync failed and local store is empty.")
                 return
             }
 
             let onboardingWasComplete = await checkIfOnboardingIsComplete()
-            let seedStartDate = hasDirtySeededTasks ? Date() : defaultSeedStartDate()
+            let seedStartDate = defaultSeedStartDate()
 
             try await store.populateDefaultCarePlansTasksContacts(
                 startDate: seedStartDate,
-                preserveHistoricalWindow: !hasDirtySeededTasks
+                preserveHistoricalWindow: true
             )
             #if os(iOS) || os(visionOS)
+            guard let healthKitStore = appDelegate.healthKitStore else {
+                return
+            }
             try await healthKitStore.populateDefaultHealthKitTasks(startDate: seedStartDate)
             #endif
 
             if onboardingWasComplete {
                 try await markCurrentOnboardingCompleteIfNeeded(in: store)
-                defaults.set(true, forKey: Constants.onboardingCompletedKey)
+                UserDefaults.standard.set(true, forKey: Constants.onboardingCompletedKey)
             }
-
-            defaults.set(
-                Constants.hypertensionSeedVersion,
-                forKey: Constants.hypertensionSeedVersionKey
-            )
 
             NotificationCenter.default.post(
                 .init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
             )
+            _ = await synchronizeStoreIfRemoteEnabledAndWait()
         } catch {
             Logger.utility.error("Could not migrate hypertension tasks: \(error)")
         }
+    }
+
+    @MainActor
+    private static func localStoreHasSeedableData(_ store: OCKStore) async throws -> Bool {
+        var query = OCKTaskQuery()
+        query.excludesTasksWithNoEvents = false
+        let tasks = try await store.fetchAnyTasks(query: query)
+        return !tasks.isEmpty
     }
 
     @MainActor
@@ -448,7 +379,7 @@ class Utility {
         in store: OCKStore
     ) async throws {
         var query = OCKEventQuery(for: Date())
-        query.taskIDs = [TaskID.onboarding]
+        query.taskIDs = TaskID.onboardingIDs
 
         let events = try await store.fetchEvents(query: query)
         guard let event = events.first, event.outcome == nil else {

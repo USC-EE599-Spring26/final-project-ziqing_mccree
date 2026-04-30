@@ -176,10 +176,12 @@ struct OCKFeaturedContentView: View {
 #if canImport(ResearchKit) && canImport(ResearchKitUI)
 private struct ResearchTaskSheet: UIViewControllerRepresentable {
 	let task: ORKTask
+	let defaultResultSource: ORKTaskResultSource?
 	let onFinish: (ORKTaskViewController, ORKTaskFinishReason, Error?) -> Void
 
 	func makeUIViewController(context: Context) -> ORKTaskViewController {
 		let controller = ORKTaskViewController(task: task, taskRun: UUID())
+		controller.defaultResultSource = defaultResultSource
 		controller.delegate = context.coordinator
 		return controller
 	}
@@ -235,7 +237,10 @@ struct MyCustomCardView: CareKitEssentialView {
 		}
 			#if canImport(ResearchKit) && canImport(ResearchKitUI)
 			.sheet(isPresented: $isPresentingResearchTask) {
-				ResearchTaskSheet(task: featuredResearchTask) { controller, reason, _ in
+				ResearchTaskSheet(
+					task: featuredResearchTask,
+					defaultResultSource: nil
+				) { controller, reason, _ in
 					Task { @MainActor in
 						controller.dismiss(animated: true)
 						isPresentingResearchTask = false
@@ -388,14 +393,15 @@ struct MyCustomCardView: CareKitEssentialView {
 				diastolicValue.kind = MeasurementSurveyKind.diastolicValue.rawValue
 				diastolicValue.units = "mmHg"
 
-				_ = try await saveOutcomeValues(
-					[systolicValue, diastolicValue],
-					event: event
-				)
-				NotificationCenter.default.post(
-					name: Notification.Name(rawValue: Constants.shouldRefreshView),
-					object: nil
-				)
+					_ = try await saveOutcomeValues(
+						[systolicValue, diastolicValue],
+						event: event
+					)
+					Utility.synchronizeStoreIfRemoteEnabled()
+					NotificationCenter.default.post(
+						name: Notification.Name(rawValue: Constants.shouldRefreshView),
+						object: nil
+					)
 			} catch {
 				Logger.careKitTask.info("Error saving measurement response: \(error)")
 			}
@@ -416,13 +422,14 @@ struct MyCustomCardView: CareKitEssentialView {
 
 	private func saveActiveTaskOutcome() async {
 		do {
-			let updatedOutcome = try await saveOutcomeValues(
-				[OCKOutcomeValue("Completed daily walking check")],
-				event: event
-			)
-			Logger.careKitTask.info(
-				"Updated walk assessment outcome: \(updatedOutcome.values)"
-			)
+				let updatedOutcome = try await saveOutcomeValues(
+					[OCKOutcomeValue("Completed daily walking check")],
+					event: event
+				)
+				Utility.synchronizeStoreIfRemoteEnabled()
+				Logger.careKitTask.info(
+					"Updated walk assessment outcome: \(updatedOutcome.values)"
+				)
 			NotificationCenter.default.post(
 				name: Notification.Name(rawValue: Constants.shouldRefreshView),
 				object: nil
@@ -444,12 +451,13 @@ struct MyCustomCardView: CareKitEssentialView {
 
 	private func toggleEventCompletion() {
 		Task {
-			do {
-				guard event.isComplete == false else {
-					let updatedOutcome = try await saveOutcomeValues([], event: event)
-					Logger.careKitTask.info(
-						"Updated event by removing outcome values: \(updatedOutcome.values)"
-					)
+				do {
+					guard event.isComplete == false else {
+						let updatedOutcome = try await saveOutcomeValues([], event: event)
+						Utility.synchronizeStoreIfRemoteEnabled()
+						Logger.careKitTask.info(
+							"Updated event by removing outcome values: \(updatedOutcome.values)"
+						)
 					NotificationCenter.default.post(
 						name: Notification.Name(rawValue: Constants.shouldRefreshView),
 						object: nil
@@ -458,13 +466,14 @@ struct MyCustomCardView: CareKitEssentialView {
 				}
 
 				let newOutcomeValue = OCKOutcomeValue(true)
-				let updatedOutcome = try await saveOutcomeValues(
-					[newOutcomeValue],
-					event: event
-				)
-				Logger.careKitTask.info(
-					"Updated event by setting outcome values: \(updatedOutcome.values)"
-				)
+					let updatedOutcome = try await saveOutcomeValues(
+						[newOutcomeValue],
+						event: event
+					)
+					Utility.synchronizeStoreIfRemoteEnabled()
+					Logger.careKitTask.info(
+						"Updated event by setting outcome values: \(updatedOutcome.values)"
+					)
 				NotificationCenter.default.post(
 					name: Notification.Name(rawValue: Constants.shouldRefreshView),
 					object: nil
@@ -483,204 +492,6 @@ extension MyCustomCardView: EventViewable {
 		store: any OCKAnyStoreProtocol
 	) {
 		self.init(event: event)
-	}
-}
-#endif
-
-struct MeasurementResearchCareForm<Content: View>: CareKitEssentialView {
-	@Environment(\.careStore) var store
-	@Environment(\.dismiss) private var dismiss
-
-	let event: OCKAnyEvent
-	@ViewBuilder let steps: () -> Content
-
-	var body: some View {
-		ResearchForm(
-			id: event.id,
-			steps: steps,
-			onResearchFormCompletion: { completion in
-				switch completion {
-				case .completed(let results), .saved(let results):
-					save(results)
-				case .discarded:
-					dismiss()
-				default:
-					dismiss()
-				}
-			}
-		)
-	}
-
-	init(
-		event: OCKAnyEvent,
-		steps: @escaping () -> Content
-	) {
-		self.event = event
-		self.steps = steps
-	}
-
-	private func save(_ results: ResearchFormResult) {
-		let outcomeValues = createOutcomeValues(from: results)
-
-		Task {
-			do {
-				_ = try await saveOutcomeValues(outcomeValues, event: event)
-				NotificationCenter.default.post(
-					name: Notification.Name(rawValue: Constants.shouldRefreshView),
-					object: nil
-				)
-				dismiss()
-			} catch {
-				Logger.careKitTask.error("Could not save blood pressure survey results: \(error)")
-				dismiss()
-			}
-		}
-	}
-
-	private func createOutcomeValues(from results: ResearchFormResult) -> [OCKOutcomeValue] {
-		results
-			.compactMap { result -> [OCKOutcomeValue]? in
-				do {
-					return try result.convertToOCKOutcomeValues()
-				} catch {
-					Logger.careKitTask.error("Cannot convert result to blood pressure outcomes: \(error)")
-					return nil
-				}
-			}
-			.flatMap { $0 }
-			.map { value in
-				var updatedValue = value
-				if updatedValue.kind == MeasurementSurveyKind.systolicValue.rawValue
-					|| updatedValue.kind == MeasurementSurveyKind.diastolicValue.rawValue {
-					updatedValue.units = "mmHg"
-				}
-				return updatedValue
-			}
-	}
-}
-
-#if !os(watchOS)
-extension MeasurementResearchCareForm: EventWithContentViewable {
-	init?(
-		event: OCKAnyEvent,
-		store: any OCKAnyStoreProtocol,
-		content: @escaping () -> Content
-	) {
-		self.init(event: event, steps: content)
-	}
-}
-#endif
-
-private struct MeasurementResearchSurveyView<Content: View>: View {
-	@Environment(\.careKitStyle) private var style
-	@Environment(\.isCardEnabled) private var isCardEnabled
-	@State private var isPresented = false
-
-	let event: OCKAnyEvent
-	@ViewBuilder let form: () -> Content
-
-	var body: some View {
-		CardView {
-			VStack(alignment: .leading) {
-				InformationHeaderView(
-					title: Text(event.title),
-					information: event.detailText,
-					event: event
-				)
-
-				event.instructionsText
-					.fixedSize(horizontal: false, vertical: true)
-
-				if !outcomeSummary.isEmpty {
-					VStack(alignment: .leading, spacing: 6) {
-						ForEach(outcomeSummary, id: \.self) { line in
-							Text(line)
-								.font(.subheadline)
-								.foregroundStyle(.secondary)
-						}
-					}
-					.padding(.top, 12)
-				}
-
-				VStack(alignment: .center) {
-					Button(action: {
-						isPresented.toggle()
-					}) {
-						RectangularCompletionView(isComplete: event.isComplete) {
-							HStack {
-								Spacer()
-								Text(event.isComplete ? "Completed" : "Start Survey")
-									.foregroundColor(event.isComplete ? .accentColor : .white)
-									.frame(maxWidth: .infinity)
-								Spacer()
-							}
-							.padding()
-						}
-					}
-					.buttonStyle(NoHighlightStyle())
-				}
-				.padding(.vertical)
-			}
-			.padding(isCardEnabled ? [.all] : [])
-		}
-		.careKitStyle(style)
-		.frame(maxWidth: .infinity)
-		.sheet(isPresented: $isPresented) {
-			MeasurementResearchCareForm(
-				event: event,
-				steps: form
-			)
-		}
-	}
-
-	init(
-		event: OCKAnyEvent,
-		form: @escaping () -> Content
-	) {
-		self.event = event
-		self.form = form
-	}
-
-	private var outcomeSummary: [String] {
-		guard event.isComplete else {
-			return []
-		}
-
-		let systolicText = bloodPressureSummary(
-			kind: MeasurementSurveyKind.systolicValue,
-			label: "Systolic"
-		)
-		let diastolicText = bloodPressureSummary(
-			kind: MeasurementSurveyKind.diastolicValue,
-			label: "Diastolic"
-		)
-
-		return [
-			systolicText,
-			diastolicText
-		].compactMap { $0 }
-	}
-
-	private func bloodPressureSummary(
-		kind: MeasurementSurveyKind,
-		label: String
-	) -> String? {
-		let value = event.answer(kind: kind.rawValue)
-		guard value > 0 else {
-			return nil
-		}
-		return "\(label): \(Int(value.rounded())) mmHg"
-	}
-}
-
-#if !os(watchOS)
-extension MeasurementResearchSurveyView: EventWithContentViewable {
-	init?(
-		event: OCKAnyEvent,
-		store: any OCKAnyStoreProtocol,
-		content: @escaping () -> Content
-	) {
-		self.init(event: event, form: content)
 	}
 }
 #endif
@@ -867,38 +678,23 @@ struct ResearchSurveyCardView: View {
 		.frame(maxWidth: .infinity)
 		.fixedSize(horizontal: false, vertical: true)
 		.padding(.vertical)
-		.sheet(isPresented: $isPresented) {
-			if let task = event.task as? OCKTask,
-			   let steps = task.surveySteps {
-				if event.task.id == AppTaskID.bpMeasurement {
-					MeasurementResearchCareForm(event: event) {
-						ForEach(steps) { step in
-							ResearchFormStep(
-								title: task.title ?? task.id,
-								subtitle: task.instructions
-							) {
-								ForEach(step.questions) { question in
-									question.view()
-								}
+			.sheet(isPresented: $isPresented) {
+				if let task = event.task as? OCKTask,
+				   let steps = task.surveySteps {
+					ResearchCareForm(event: event) {
+					ForEach(steps) { step in
+						ResearchFormStep(
+							title: task.title ?? task.id,
+							subtitle: task.instructions
+						) {
+							ForEach(step.questions) { question in
+								question.view()
 							}
 						}
 					}
-				} else {
-					ResearchCareForm(event: event) {
-						ForEach(steps) { step in
-							ResearchFormStep(
-								title: task.title ?? task.id,
-								subtitle: task.instructions
-							) {
-								ForEach(step.questions) { question in
-									question.view()
-								}
-							}
-						}
 					}
 				}
 			}
-		}
 	}
 
 	private var outcomeSummary: [String] {

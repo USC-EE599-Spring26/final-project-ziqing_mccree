@@ -46,9 +46,7 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
 	private var isSyncing = false
 	private var isLoading = false
-	private var hasValidatedHypertensionSeed = false
 	private var pendingReload = false
-	private var taskLoadGeneration = 0
 	private let swiftUIPadding: CGFloat = 15
     private var style: Styler {
         CustomStylerKey.defaultValue
@@ -159,12 +157,39 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
         for date: Date
     ) {
         self.isLoading = true
-		taskLoadGeneration += 1
-		let generation = taskLoadGeneration
 
 		Task {
+			guard await Utility.checkIfOnboardingIsComplete() else {
+				let onboardingSurvey = Onboard()
+				var query = OCKEventQuery(for: Date())
+				query.taskIDs = TaskID.onboardingIDs
+				let onboardingCard = OCKSurveyTaskViewController(
+					eventQuery: query,
+					store: self.store,
+					survey: onboardingSurvey.createSurvey(),
+					extractOutcome: { result in
+						// 我这里直接对齐老师项目：完成 onboarding 后延迟 reload，
+						// 让 outcome 先落到 store，再切回正常任务列表。
+						DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+							self.reload()
+						}
+						return onboardingSurvey.extractAnswers(result)
+					}
+				)
+				onboardingCard.surveyDelegate = self
+
+				listViewController.clear()
+				listViewController.appendViewController(onboardingCard, animated: false)
+				self.isLoading = false
+				if pendingReload {
+					pendingReload = false
+					reload()
+				}
+				return
+			}
+
 			let date = modifyDateIfNeeded(date)
-			await fetchAndDisplayTasks(on: listViewController, for: date, generation: generation)
+			await fetchAndDisplayTasks(on: listViewController, for: date)
 		}
     }
 
@@ -187,17 +212,9 @@ final class CareViewController: OCKDailyPageViewController, @unchecked Sendable 
 
 	private func fetchAndDisplayTasks(
 		on listViewController: OCKListViewController,
-		for date: Date,
-		generation: Int
+		for date: Date
 	) async {
-		if !hasValidatedHypertensionSeed {
-			hasValidatedHypertensionSeed = true
-			await Utility.migrateHypertensionTasksIfNeeded()
-		}
 		let tasks = await self.fetchTasks(on: date)
-		guard generation == taskLoadGeneration else {
-			return
-		}
 		appendTasks(tasks, to: listViewController, date: date)
 	}
 }
@@ -210,7 +227,10 @@ private extension CareViewController {
 			let tasks = try await store.fetchAnyTasks(query: query)
 			let filteredTasks = normalizeVisibleTasks(
 				filterOutDemoTasks(tasks)
-			)
+			).filter { task in
+				!TaskID.onboardingIDs.contains(task.id)
+			}
+
 			let careTasks = filteredTasks.compactMap { $0 as? CareTask }
 			let orderedTasks = careTasks.sortedByPriority().compactMap { orderedTask in
 				filteredTasks.first(where: { $0.id == orderedTask.id })
@@ -218,7 +238,7 @@ private extension CareViewController {
 			let unorderedTasks = filteredTasks.filter { task in
 				orderedTasks.first(where: { $0.id == task.id }) == nil
 			}
-			return await applyOnboardingGate(orderedTasks + unorderedTasks)
+			return orderedTasks + unorderedTasks
 		} catch {
 			Logger.feed.error("Could not fetch tasks: \(error, privacy: .public)")
 			return []
@@ -273,30 +293,6 @@ private extension CareViewController {
 			let keywords = ["pregnancy", "ovulation", "doxylamine", "nausea", "kegels", "stretch"]
 			return !keywords.contains(where: { id.contains($0) || title.contains($0) })
 		}
-	}
-
-	func applyOnboardingGate(
-		_ tasks: [any OCKAnyTask]
-	) async -> [any OCKAnyTask] {
-		let defaults = UserDefaults.standard
-		let onboardingIDs = Set(TaskID.onboardingIDs)
-
-		let todayOnboardingEvents = await onboardingEvents(on: Date())
-		if !todayOnboardingEvents.isEmpty {
-			let hasCompletedToday = todayOnboardingEvents.contains(where: \.isComplete)
-			defaults.set(hasCompletedToday, forKey: Constants.onboardingCompletedKey)
-
-			guard hasCompletedToday else {
-				return tasks.filter { onboardingIDs.contains($0.id) }
-			}
-			return tasks
-		}
-
-		let completionFlag = defaults.bool(forKey: Constants.onboardingCompletedKey)
-		guard completionFlag else {
-			return tasks.filter { onboardingIDs.contains($0.id) }
-		}
-		return tasks
 	}
 
 	func normalizeVisibleTasks(
@@ -470,18 +466,6 @@ private extension CareViewController {
 		return questionIDs.contains(MeasurementSurveyKind.systolicValue.rawValue)
 			&& questionIDs.contains(MeasurementSurveyKind.diastolicValue.rawValue)
 	}
-
-	func onboardingEvents(on date: Date = Date()) async -> [OCKAnyEvent] {
-		var query = OCKEventQuery(for: date)
-		query.taskIDs = TaskID.onboardingIDs
-
-		do {
-			return try await store.fetchAnyEvents(query: query)
-		} catch {
-			Logger.feed.error("Could not fetch onboarding events: \(error, privacy: .public)")
-			return []
-		}
-	}
 }
 
 private extension CareViewController {
@@ -608,32 +592,6 @@ private extension CareViewController {
 			return nil
 		}
 
-		if task.id == AppTaskID.bpMeasurement {
-			let surveyViewController = EventQueryContentView<ResearchSurveyView>(
-				query: query
-			) {
-				EventQueryContentView<MeasurementResearchCareForm>(
-					query: query
-				) {
-					ForEach(steps) { step in
-						ResearchFormStep(
-							title: task.title,
-							subtitle: task.instructions
-						) {
-							ForEach(step.questions) { question in
-								question.view()
-							}
-						}
-					}
-				}
-			}
-			.environment(\.careStore, store)
-			.padding(.vertical, swiftUIPadding)
-			.formattedHostingController()
-
-			return surveyViewController
-		}
-
 		let surveyViewController = EventQueryContentView<ResearchSurveyView>(
 			query: query
 		) {
@@ -681,17 +639,8 @@ private extension CareViewController {
 
 #if canImport(ResearchKit) && canImport(ResearchKitUI)
 extension CareViewController: OCKSurveyTaskViewControllerDelegate {
-	nonisolated func surveyTask(
-		viewController: OCKSurveyTaskViewController,
-		for task: any OCKAnyTask,
-		didFinish result: Swift.Result<ORKTaskFinishReason, any Error>
-	) {
-		if case let .success(reason) = result, reason == .completed {
-			Task { @MainActor in
-				self.reload()
-			}
-		}
-	}
+	// 我这里先对齐老师项目，onboarding 完成后的刷新放在 extractOutcome 里处理，
+	// 不再依赖这个 delegate 去切列表。
 }
 #endif
 
