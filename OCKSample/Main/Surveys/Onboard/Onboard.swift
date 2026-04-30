@@ -131,14 +131,8 @@ extension Onboard {
 	}
 
 	func extractAnswers(_ result: ORKTaskResult) -> [OCKOutcomeValue]? {
-		UserDefaults.standard.set(true, forKey: Constants.onboardingCompletedKey)
 		DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
 			Utility.requestHealthKitPermissions()
-		}
-		DispatchQueue.main.async {
-			NotificationCenter.default.post(
-				.init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
-			)
 		}
 		return [OCKOutcomeValue(Date())]
 	}

@@ -208,19 +208,17 @@ final class AppDelegate: UIResponder, ObservableObject {
                 value: daysInThePastToGenerateSampleData,
                 to: Date()
             )!
-            try await store.populateSampleOutcomes(
-                startDate: sampleStartDate
-            )
+            if sampleStartDate < Date() {
+                try await store.populateSampleOutcomes(
+                    startDate: sampleStartDate
+                )
+            }
 
             let today = Date()
             var query = OCKTaskQuery(for: today)
             query.excludesTasksWithNoEvents = false
             let tasks = try await store.fetchAnyTasks(query: query)
             Logger.utility.info("DEBUG reseed complete. Tasks available for today: \(tasks.count)")
-            defaults.set(
-                Constants.hypertensionSeedVersion,
-                forKey: Constants.hypertensionSeedVersionKey
-            )
             defaults.set(false, forKey: key)
         } catch {
             Logger.utility.error("DEBUG reseed failed: \(error)")

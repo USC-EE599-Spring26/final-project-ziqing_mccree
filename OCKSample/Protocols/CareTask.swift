@@ -58,6 +58,7 @@ extension CareTask {
             userInfo?[Constants.priority] = String(newValue)
         }
     }
+
 }
 
 extension Sequence where Element == CareTask {

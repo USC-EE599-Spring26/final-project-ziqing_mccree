@@ -24,12 +24,11 @@ let isSyncingWithRemote = true
  */
 let isSendingPushUpdatesToWatch = true
 
-/**
- If you want to generate sample data for x amount of days in the past (before user sign-up),
- set this value to a negative number. This is used for demo purposes if you want populate
- the InsightsView charts with data.
- */
-let daysInThePastToGenerateSampleData: Int = -14 // Populate past outcomes so Insights has immediate demo data.
+// If you want to generate sample data for x amount of days in the past (before user sign-up),
+// set this value to a negative number. This is used for demo purposes if you want populate
+// the InsightsView charts with data. Same as the sample project: new users start without
+// generated outcomes.
+let daysInThePastToGenerateSampleData: Int = 0
 
 enum Constants {
     static let parseConfigFileName = "ParseCareKit"
@@ -55,6 +54,4 @@ enum Constants {
 
     /// `true` after user completes hypertension ResearchKit onboarding (Care gate).
     static let onboardingCompletedKey = "onboardingCompleted"
-    static let hypertensionSeedVersionKey = "hypertensionSeedVersion"
-    static let hypertensionSeedVersion = 8
 }

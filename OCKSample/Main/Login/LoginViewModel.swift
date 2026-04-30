@@ -127,7 +127,7 @@ class LoginViewModel: ObservableObject {
 			id: remoteUUID.uuidString,
 			givenName: firstName,
 			familyName: lastName
-		)
+        )
         newPatient.userType = type
         let savedPatient = try await appDelegate.store.addPatient(newPatient)
 
@@ -169,7 +169,6 @@ class LoginViewModel: ObservableObject {
             newUser.username = username.lowercased()
             newUser.password = password
             newUser.email = email
-            newUser.hypertensionSeedVersion = Constants.hypertensionSeedVersion
             let user = try await newUser.signup()
             Logger.login.info("Parse signup successful: \(user)")
             let patient = try await savePatientAfterSignUp(type,

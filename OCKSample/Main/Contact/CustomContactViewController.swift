@@ -229,6 +229,7 @@ extension CustomContactViewController: @MainActor CNContactPickerDelegate {
             if !allContacts.contains(where: { $0.id == contactToAdd.id }) {
                 do {
                     _ = try await store.addAnyContact(contactToAdd)
+                    Utility.synchronizeStoreIfPossible()
                 } catch {
                     Logger.contact.error("Could not add contact: \(error.localizedDescription)")
                 }
@@ -258,6 +259,7 @@ extension CustomContactViewController: @MainActor CNContactPickerDelegate {
 
             do {
                 _ = try await store.addAnyContacts(contactsToAdd)
+                Utility.synchronizeStoreIfPossible()
             } catch {
                 Logger.contact.error("Could not add contacts: \(error.localizedDescription)")
             }

@@ -31,9 +31,6 @@ extension AppDelegate: UIApplicationDelegate {
                     Logger.appDelegate.info("User is already signed in...")
                     do {
                         let remoteClock = try await Utility.prepareRemoteClockForCurrentSeed()
-                        if remoteClock.didRotateClock {
-                            Utility.resetStoresForHypertensionSeedRotation()
-                        }
                         try await setupRemotes(uuid: remoteClock.uuid)
                         if remoteClock.didRotateClock {
                             try await Utility.seedHypertensionDataInCurrentStores()

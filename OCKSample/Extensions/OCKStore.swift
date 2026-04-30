@@ -14,6 +14,68 @@ import os.log
 import ParseSwift
 import ParseCareKit
 
+private extension OCKTask {
+    func needsSeedMetadataUpdate(from expected: OCKTask) -> Bool {
+        // 我这里把 schedule 也算进默认任务修正里；不然老用户同 ID 的旧任务可能还在，但今天的 event 出不来。
+        if title != expected.title
+            || instructions != expected.instructions
+            || asset != expected.asset
+            || schedule != expected.schedule
+            || carePlanUUID != expected.carePlanUUID
+            || impactsAdherence != expected.impactsAdherence
+            || card != expected.card
+            || priority != expected.priority
+            || linkURL != expected.linkURL
+            || featuredMessage != expected.featuredMessage {
+            return true
+        }
+
+        #if os(iOS)
+        if uiKitSurvey != expected.uiKitSurvey {
+            return true
+        }
+        if expected.surveySteps != nil && !hasSameSurveyQuestionIDs(as: expected) {
+            return true
+        }
+        #endif
+
+        return false
+    }
+
+    func applyingSeedMetadata(from expected: OCKTask) -> OCKTask {
+        var updated = self
+        updated.title = expected.title
+        updated.instructions = expected.instructions
+        updated.asset = expected.asset
+        updated.schedule = expected.schedule
+        updated.carePlanUUID = expected.carePlanUUID
+        updated.impactsAdherence = expected.impactsAdherence
+        updated.card = expected.card
+        updated.priority = expected.priority
+        updated.linkURL = expected.linkURL
+        updated.featuredMessage = expected.featuredMessage
+
+        #if os(iOS)
+        updated.uiKitSurvey = expected.uiKitSurvey
+        updated.surveySteps = expected.surveySteps
+        #endif
+
+        return updated
+    }
+
+    #if os(iOS)
+    private func hasSameSurveyQuestionIDs(as expected: OCKTask) -> Bool {
+        let currentIDs = surveySteps?
+            .flatMap(\.questions)
+            .map(\.id) ?? []
+        let expectedIDs = expected.surveySteps?
+            .flatMap(\.questions)
+            .map(\.id) ?? []
+        return currentIDs == expectedIDs
+    }
+    #endif
+}
+
 extension OCKStore {
 #if os(iOS)
     @MainActor
@@ -47,7 +109,7 @@ extension OCKStore {
 
         var carePlansNotInStore = [OCKAnyCarePlan]()
         carePlans.forEach { potentialCarePlan in
-            guard foundCarePlans.first(where: { $0.id == potentialCarePlan.id }) == nil else {
+            if foundCarePlans.first(where: { $0.id == potentialCarePlan.id }) != nil {
                 return
             }
 
@@ -59,11 +121,9 @@ extension OCKStore {
             carePlansNotInStore.append(mutableCarePlan)
         }
 
-        guard !carePlansNotInStore.isEmpty else {
-            return
+        if !carePlansNotInStore.isEmpty {
+            _ = try await addAnyCarePlans(carePlansNotInStore)
         }
-
-        _ = try await addAnyCarePlans(carePlansNotInStore)
     }
 
     #endif
@@ -318,33 +378,17 @@ extension OCKStore {
             startDate: taskStartDate
         )
 
-        try await replaceSeededTasks(
-            with: [
-                onboardingTask,
-                medicationChecklist,
-                measurementTask,
-                morningPrep,
-                symptomsCheck,
-                lowSodium,
-                walkAssessment
-            ],
-            legacyIDs: [
-                TaskID.legacyOnboarding,
-                TaskID.doxylamine,
-                TaskID.nausea,
-                TaskID.kegels,
-                TaskID.stretch,
-                AppTaskID.reflection,
-                AppTaskID.legacyEducation,
-                AppTaskID.legacyReflectionSurvey,
-                AppTaskID.legacyQualityOfLife,
-                AppTaskID.bpMedicationAM,
-                AppTaskID.bpMedicationPM,
-                AppTaskID.exercise,
-                AppTaskID.rangeOfMotion,
-                AppTaskID.legacyWalkAssessment
-            ]
-        )
+        let seededTasks = [
+            onboardingTask,
+            medicationChecklist,
+            measurementTask,
+            morningPrep,
+            symptomsCheck,
+            lowSodium,
+            walkAssessment
+        ]
+
+        try await addOrUpdateSeededTasksIfNeeded(seededTasks)
 
         var todayQuery = OCKTaskQuery(for: today)
         todayQuery.excludesTasksWithNoEvents = false
@@ -404,30 +448,35 @@ extension OCKStore {
         )
     }
 
-    private func replaceSeededTasks(
-        with tasks: [OCKTask],
-        legacyIDs: [String]
-    ) async throws {
-        let idsToReplace = Array(Set(tasks.map(\.id) + legacyIDs))
+    private func addOrUpdateSeededTasksIfNeeded(_ tasks: [OCKTask]) async throws {
+        // 我这里只补齐或更新默认任务的 metadata，不删除 outcome，避免升级时误伤用户数据。
+        let taskIDs = tasks.map(\.id)
         var query = OCKTaskQuery()
-        query.ids = idsToReplace
+        query.ids = taskIDs
 
-        var outcomeQuery = OCKOutcomeQuery()
-        outcomeQuery.taskIDs = idsToReplace
-        let existingOutcomes = try await fetchAnyOutcomes(query: outcomeQuery)
-        if !existingOutcomes.isEmpty {
-            _ = try await deleteAnyOutcomes(existingOutcomes)
-        }
+        let existingTasks = try await fetchTasks(query: query)
+        var tasksToAdd = [OCKTask]()
+        var tasksToUpdate = [OCKTask]()
 
-        while true {
-            let existingTasks = try await fetchTasks(query: query)
-            guard !existingTasks.isEmpty else {
-                break
+        tasks.forEach { task in
+            guard let existingTask = existingTasks.first(where: { $0.id == task.id }) else {
+                tasksToAdd.append(task)
+                return
             }
-            _ = try await deleteTasks(existingTasks)
+
+            guard existingTask.needsSeedMetadataUpdate(from: task) else {
+                return
+            }
+            tasksToUpdate.append(existingTask.applyingSeedMetadata(from: task))
         }
 
-        _ = try await addTasks(tasks)
+        if !tasksToAdd.isEmpty {
+            _ = try await addTasks(tasksToAdd)
+        }
+
+        if !tasksToUpdate.isEmpty {
+            _ = try await updateTasks(tasksToUpdate)
+        }
     }
 
     private func makeOnboardingTask(

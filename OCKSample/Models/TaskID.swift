@@ -15,11 +15,10 @@ enum TaskID {
     static let kegels = "kegels"
     static let steps = "steps"
     static let ovulationTestResult = "ovulationTestResult"
-    static let onboarding = "bp_onboarding"
-    static let legacyOnboarding = "onboarding"
+    static let onboarding = "onboarding"
 
     static var onboardingIDs: [String] {
-        [onboarding, legacyOnboarding]
+        [onboarding]
     }
 
     static var ordered: [String] {
@@ -45,7 +44,7 @@ enum TaskID {
 }
 
 enum AppTaskID {
-    static var orderedCare: [String] {
+    static var orderedStandardCare: [String] {
         [
             TaskID.onboarding,
             medicationChecklist,
@@ -53,10 +52,27 @@ enum AppTaskID {
             symptomsCheck,
             morningPrep,
             lowSodiumCheck,
-            walkAssessment,
+            walkAssessment
+        ]
+    }
+
+    static var orderedHealthKitCare: [String] {
+        [
             heartRate,
             restingHeartRate
         ]
+    }
+
+    static var orderedCare: [String] {
+        orderedStandardCare + orderedHealthKitCare
+    }
+
+    static var currentDefaultTaskIDs: [String] {
+        orderedStandardCare
+    }
+
+    static var currentDefaultHealthKitTaskIDs: [String] {
+        orderedHealthKitCare
     }
 
     static var orderedInsights: [String] {
@@ -79,18 +95,5 @@ enum AppTaskID {
     static let heartRate = "bp_heart_rate"
     static let restingHeartRate = "bp_resting_heart_rate"
 
-    // Legacy ids retained for compatibility with older code paths / stored data.
-    static let bpMedicationAM = "bp_med_am"
-    static let bpMedicationPM = "bp_med_pm"
-    static let exercise = "exercise"
-    static let rangeOfMotion = "range_of_motion"
     static let onboarding = TaskID.onboarding
-
-    static let legacyHeartRate = "heart_rate_monitoring"
-    static let legacyRestingHeartRate = "resting_heart_rate_monitoring"
-    static let legacyActiveEnergy = "active_energy_monitoring"
-    static let legacyEducation = "hypertension_education"
-    static let legacyReflectionSurvey = "bp_reflection_survey"
-    static let legacyQualityOfLife = "bp_quality_of_life"
-    static let legacyWalkAssessment = "walk_assessment"
 }
