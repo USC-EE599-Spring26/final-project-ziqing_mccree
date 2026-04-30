@@ -13,6 +13,7 @@ import ParseSwift
 import os.log
 import WatchConnectivity
 
+// swiftlint:disable function_parameter_count
 @MainActor
 class LoginViewModel: ObservableObject {
 
@@ -97,7 +98,6 @@ class LoginViewModel: ObservableObject {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             NotificationCenter.default.post(.init(name: Notification.Name(rawValue: Constants.requestSync)))
-            Utility.requestHealthKitPermissions()
         }
 
         // Setup installation to receive push notifications
@@ -127,27 +127,11 @@ class LoginViewModel: ObservableObject {
 			id: remoteUUID.uuidString,
 			givenName: firstName,
 			familyName: lastName
-		)
+        )
         newPatient.userType = type
         let savedPatient = try await appDelegate.store.addPatient(newPatient)
 
-		let currentDate = Date()
-		let startDate = daysInThePastToGenerateSampleData < 0 ? Calendar.current.date(
-			byAdding: .day,
-			value: daysInThePastToGenerateSampleData,
-			to: currentDate
-		)! : currentDate
-        try await appDelegate.store.populateDefaultCarePlansTasksContacts(
-			startDate: startDate
-		)
-        try await appDelegate.healthKitStore.populateDefaultHealthKitTasks(
-			startDate: startDate
-		)
-		if startDate < currentDate {
-			try await appDelegate.store.populateSampleOutcomes(
-				startDate: startDate
-			)
-		}
+        try await Utility.seedHypertensionDataInCurrentStores()
         appDelegate.parseRemote.automaticallySynchronizes = true
 
         // Post notification to sync
@@ -165,14 +149,16 @@ class LoginViewModel: ObservableObject {
      - parameter password: The password the person signing up.
      - parameter firstName: The first name of the person signing up.
      - parameter lastName: The last name of the person signing up.
+     - parameter email: The email of the person signing up.
     */
     func signup(
-		_ type: UserType,
-		username: String,
-		password: String,
-		firstName: String,
-		lastName: String
-	) async {
+          _ type: UserType,
+          username: String,
+          password: String,
+          firstName: String,
+          lastName: String,
+          email: String
+      ) async {
         do {
             guard try await PCKUtility.isServerAvailable() else {
                 Logger.login.error("Server health is not \"ok\"")
@@ -182,6 +168,7 @@ class LoginViewModel: ObservableObject {
             // Set any properties you want saved on the user befor logging in.
             newUser.username = username.lowercased()
             newUser.password = password
+            newUser.email = email
             let user = try await newUser.signup()
             Logger.login.info("Parse signup successful: \(user)")
             let patient = try await savePatientAfterSignUp(type,
@@ -226,6 +213,7 @@ class LoginViewModel: ObservableObject {
             AppDelegateKey.defaultValue?.setFirstTimeLogin(true)
             do {
                 try await Utility.setupRemoteAfterLogin()
+                await Utility.migrateHypertensionTasksIfNeeded()
                 try await finishCompletingSignIn()
             } catch {
                 Logger.login.error("Error saving the patient after signup: \(error, privacy: .public)")

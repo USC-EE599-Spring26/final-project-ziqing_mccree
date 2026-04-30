@@ -3,6 +3,55 @@
 
 An example application of [CareKit](https://github.com/carekit-apple/CareKit)'s OCKSample synchronizing CareKit data to the Cloud via [ParseCareKit](https://github.com/netreconlab/ParseCareKit). This project also depends on [CareKitEssentials](https://github.com/netreconlab/CareKitEssentials), which adds several cards and extensions for easier development with CareKit.
 
+## Hypertension Final Project
+
+This version customizes the sample app into a hypertension management app while
+preserving the teacher demo project's file layout, file names, and main entry
+points as closely as possible.
+
+### Added OCKTask
+
+- `onboarding` — tailored hypertension onboarding and consent flow
+- `bp_medication_checklist` — daily blood pressure medication adherence checklist
+- `bp_measure` — daily blood pressure ResearchKit SwiftUI survey card
+- `low_sodium_check` — weekly low-sodium education link card
+- `bp_walk_assessment` — daily walking check active task card
+
+### Added OCKHealthKitTask
+
+- `bp_heart_rate` — daily heart rate trend card
+- `bp_resting_heart_rate` — daily resting heart rate review card
+
+### Default Card Mix
+
+- `OCKSurveyTaskViewController` for onboarding and the daily walking check
+- `OCKChecklistTaskViewController` for medication adherence
+- ResearchKit SwiftUI survey card for daily blood pressure measurement
+- custom `LinkView` card for low-sodium education
+- `NumericProgressTaskView` for heart rate
+- `LabeledValueTaskView` for resting heart rate
+
+### Seed and Sync Behavior
+
+The seed flow intentionally stays close to the teacher demo project's structure:
+`populateDefaultCarePlansTasksContacts(...)` and
+`populateDefaultHealthKitTasks(...)` remain the main entry points. The project
+keeps only the hypertension-specific differences needed for the final project:
+
+- hypertension default tasks instead of the original demo task set
+- the teacher-style `onboarding` task id with a hypertension onboarding survey
+- SwiftUI/custom cards that save systolic and diastolic blood pressure outcomes
+- HealthKit tasks for heart rate and resting heart rate
+- a small weak-network guard that skips seeding for an existing user when remote
+  sync fails and the local store is empty
+- metadata repair for current default tasks so existing cloud tasks keep the
+  current card/survey configuration without deleting outcomes
+
+The app no longer uses a custom `hypertensionSeedVersion` field for seed
+decisions. ParseCareKit's Clock/RevisionRecord synchronization owns local/cloud
+merge state; after sync, the app only fills missing current default tasks and
+repairs current default task metadata. Existing outcomes are preserved.
+
 <img src="https://github.com/netreconlab/CareKitSample-ParseCareKit/assets/8621344/4e57796b-5c81-474d-bd8d-dfd9f18327e3" width="300"> <img src="https://github.com/netreconlab/CareKitSample-ParseCareKit/assets/8621344/d60d194a-87a5-41e9-8ae4-41a847e91ea3" width="300"> <img src="https://github.com/netreconlab/CareKitSample-ParseCareKit/assets/8621344/ca0ac2e0-d17d-4bae-88fd-f59b94812419" width="300"><img src="https://github.com/netreconlab/CareKitSample-ParseCareKit/assets/8621344/3be47269-cfde-4de2-94ae-25a60f06cac9" width="300">
 <img src="https://github.com/user-attachments/assets/873c97a9-006d-4edf-a675-ffb1baeb29c8" width="600">
 

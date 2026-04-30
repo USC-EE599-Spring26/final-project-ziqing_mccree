@@ -27,20 +27,18 @@ struct InsightsView: View {
 				.padding()
 			ScrollView {
 				VStack {
-					// This is for loop is useful when you want a chart for
-					// for every task which may not always be the case.
-					ForEach(orderedEvents) { event in
-						let eventResult = event.result
-						let dataStrategy = determineDataStrategy(for: eventResult.task.id)
-						if eventResult.task.id != TaskID.doxylamine
-							&& eventResult.task.id != TaskID.nausea {
-
-							// dynamic gradient colors
+					if orderedEvents.isEmpty {
+						Text("No task data yet. Complete tasks to see insights.")
+							.foregroundColor(.secondary)
+							.multilineTextAlignment(.center)
+							.padding(.vertical, 32)
+					} else {
+						ForEach(orderedEvents) { event in
+							let eventResult = event.result
+							let dataStrategy = determineDataStrategy(for: eventResult.task.id)
 							let meanGradientStart = Color(TintColorFlipKey.defaultValue)
 							let meanGradientEnd = Color.accentColor
 
-							// Can add muliple plots on a single
-							// chart by adding multiple configurations.
 							let meanConfiguration = CKEDataSeriesConfiguration(
 								taskID: eventResult.task.id,
 								dataStrategy: dataStrategy,
@@ -60,7 +58,7 @@ struct InsightsView: View {
 								dataStrategy: .sum,
 								mark: .bar,
 								legendTitle: String(localized: "TOTAL"),
-								color: Color(TintColorFlipKey.defaultValue) // Set to app color.
+								color: Color(TintColorFlipKey.defaultValue)
 							) { event in
 								event.computeProgress(by: .maxOutcomeValue())
 							}
@@ -75,64 +73,13 @@ struct InsightsView: View {
 									sumConfiguration
 								]
 							)
-
-						} else if eventResult.task.id == TaskID.doxylamine {
-							// Example of showing nausea vs doxlymine
-
-							// dynamic gradient colors
-							let nauseaGradientStart = Color(TintColorFlipKey.defaultValue)
-							let nauseaGradientEnd = Color.accentColor
-
-							let nauseaConfiguration = CKEDataSeriesConfiguration(
-								taskID: TaskID.nausea,
-								dataStrategy: .sum,
-								mark: .bar,
-								legendTitle: String(localized: "NAUSEA"),
-								showMarkWhenHighlighted: true,
-								showMeanMark: true,
-								showMedianMark: false,
-								color: nauseaGradientEnd,
-								gradientStartColor: nauseaGradientStart,
-								stackingMethod: .unstacked
-							) { event in
-								// This event occurs all-day and can be submitted
-								// multiple times, since we want to understand
-								// the "total" amount of times a patient experiences
-								// nausea, we sum the outcomes for each event.
-								event.computeProgress(by: .summingOutcomeValues())
-							}
-
-							let doxylamineConfiguration = CKEDataSeriesConfiguration(
-								taskID: eventResult.task.id,
-								dataStrategy: .sum,
-								mark: .bar,
-								legendTitle: String(localized: "DOXYLAMINE"),
-								color: .gray,
-								gradientStartColor: .gray.opacity(0.3),
-								stackingMethod: .unstacked,
-								symbol: .diamond,
-								interpolation: .catmullRom
-							) { event in
-								event.computeProgress(by: .averagingOutcomeValues())
-							}
-
-							CareKitEssentialChartView(
-								title: String(localized: "NAUSEA_DOXYLAMINE_INTAKE"),
-								subtitle: subtitle,
-								dateInterval: $chartInterval,
-								period: $period,
-								configurations: [
-									nauseaConfiguration,
-									doxylamineConfiguration
-								]
-							)
 						}
 					}
 				}
 				.padding()
 			}
 			.onAppear {
-				let taskIDs = TaskID.orderedWatchOS + TaskID.orderedObjective
+				let taskIDs = TaskID.orderedHypertension
 				sortedTaskIDs = computeTaskIDOrder(taskIDs: taskIDs)
 				events.query.taskIDs = taskIDs
 				events.query.dateInterval = eventQueryInterval
@@ -207,14 +154,16 @@ struct InsightsView: View {
 		return interval
 	}
 
-	private func determineDataStrategy(for taskID: String) -> CKEDataSeriesConfiguration.DataStrategy {
-		switch taskID {
-		case TaskID.ovulationTestResult, TaskID.steps:
-			return .max
-		default:
-			return .mean
+		private func determineDataStrategy(for taskID: String) -> CKEDataSeriesConfiguration.DataStrategy {
+			switch taskID {
+			case AppTaskID.bpMeasurement:
+				return .max
+			case AppTaskID.heartRate, AppTaskID.restingHeartRate:
+				return .mean
+			default:
+				return .mean
+			}
 		}
-	}
 
 	private func setupChartPropertiesForSegmentSelection(_ segmentValue: Int) {
 		let now = Date()

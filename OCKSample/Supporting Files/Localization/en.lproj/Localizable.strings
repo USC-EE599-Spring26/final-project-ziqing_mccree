@@ -63,6 +63,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 "TODAY" = "Today";
 "START_SURVEY" = "Start Survey";
 
+// MARK: ResearchKitSwiftUI fallback localization
+"BUTTON_CANCEL" = "Cancel";
+"BUTTON_DONE" = "Done";
+"BUTTON_NEXT" = "Next";
+"NAVIGATION_TITLE" = "%d of %d";
+"QUESTION_PROGRESS" = "Question %d of %d";
+
 // MARK: Login
 "APP_NAME" = "CareKit Sample App";
 "LOGIN_PICKER" = "Login Picker";

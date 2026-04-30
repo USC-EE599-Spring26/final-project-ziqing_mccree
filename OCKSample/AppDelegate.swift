@@ -52,10 +52,10 @@ final class AppDelegate: UIResponder, ObservableObject {
             self.objectWillChange.send()
         }
     }
-	@Published private(set) var store: OCKStore! = OCKStore(
-		name: Constants.noCareStoreName,
-		type: .inMemory
-	)
+    @Published private(set) var store: OCKStore! = OCKStore(
+        name: isSyncingWithRemote ? Constants.iOSParseCareStoreName : Constants.iOSLocalCareStoreName,
+        type: .onDisk()
+    )
     private(set) var healthKitStore: OCKHealthKitPassthroughStore! {
 		get {
 			return state.withLock { $0.healthKitStore }
@@ -183,4 +183,46 @@ final class AppDelegate: UIResponder, ObservableObject {
             throw error
         }
     }
+
+    #if DEBUG
+    func debugReseedIfNeeded() async {
+        let defaults = UserDefaults.standard
+        let key = "ForceReseedHypertension"
+        guard defaults.bool(forKey: key) else {
+            return
+        }
+        guard let store = self.store,
+              let healthKitStore = self.healthKitStore,
+              store.name != Constants.noCareStoreName else {
+            Logger.utility.info("DEBUG reseed skipped because stores are not ready yet")
+            return
+        }
+
+        do {
+            Logger.utility.info("DEBUG reseed: populating hypertension demo data")
+            UserDefaults.standard.set(false, forKey: Constants.onboardingCompletedKey)
+            try await store.populateDefaultCarePlansTasksContacts()
+            try await healthKitStore.populateDefaultHealthKitTasks()
+            let sampleStartDate = Calendar.current.date(
+                byAdding: .day,
+                value: daysInThePastToGenerateSampleData,
+                to: Date()
+            )!
+            if sampleStartDate < Date() {
+                try await store.populateSampleOutcomes(
+                    startDate: sampleStartDate
+                )
+            }
+
+            let today = Date()
+            var query = OCKTaskQuery(for: today)
+            query.excludesTasksWithNoEvents = false
+            let tasks = try await store.fetchAnyTasks(query: query)
+            Logger.utility.info("DEBUG reseed complete. Tasks available for today: \(tasks.count)")
+            defaults.set(false, forKey: key)
+        } catch {
+            Logger.utility.error("DEBUG reseed failed: \(error)")
+        }
+    }
+    #endif
 }

@@ -13,7 +13,19 @@ import ParseCareKit
 import ParseSwift
 import os.log
 
+// swiftlint:disable type_body_length
 class Utility {
+
+    static func defaultSeedStartDate(from currentDate: Date = Date()) -> Date {
+        if daysInThePastToGenerateSampleData < 0 {
+            return Calendar.current.date(
+                byAdding: .day,
+                value: daysInThePastToGenerateSampleData,
+                to: currentDate
+            ) ?? currentDate
+        }
+        return currentDate
+    }
 
     static func convertNonSendableDictionaryToSendable(_ dictionary: [String: Any]) -> [String: String] {
 		let sendableDictionary: [String: String] = dictionary.reduce(into: [:]) {
@@ -43,6 +55,26 @@ class Utility {
         return remoteClockUUID
     }
 
+    static func prepareRemoteClockForCurrentSeed() async throws -> (uuid: UUID, didRotateClock: Bool) {
+        var user = try await User.current()
+        guard let lastUserTypeSelected = user.lastTypeSelected else {
+            throw AppError.remoteClockIDNotAvailable
+        }
+
+        if let existingUUID = user.userTypeUUIDs?[lastUserTypeSelected] {
+            return (existingUUID, false)
+        }
+
+        let newUUID = UUID()
+        if user.userTypeUUIDs == nil {
+            user.userTypeUUIDs = [lastUserTypeSelected: newUUID]
+        } else {
+            user.userTypeUUIDs?[lastUserTypeSelected] = newUUID
+        }
+        _ = try await user.save()
+        return (newUUID, true)
+    }
+
     static func setDefaultACL() async throws {
         var defaultACL = ParseACL()
         defaultACL.publicRead = false
@@ -52,7 +84,7 @@ class Utility {
 
     @MainActor
     static func setupRemoteAfterLogin() async throws {
-        let remoteUUID = try await Utility.getRemoteClockUUID()
+        let remoteClock = try await Utility.prepareRemoteClockForCurrentSeed()
         do {
             try await setDefaultACL()
         } catch {
@@ -63,9 +95,70 @@ class Utility {
             Logger.utility.error("Could not setup remotes, AppDelegate is nil")
             return
         }
-        try await appDelegate.setupRemotes(uuid: remoteUUID)
+        try await appDelegate.setupRemotes(uuid: remoteClock.uuid)
+        if remoteClock.didRotateClock {
+            try await seedHypertensionDataInCurrentStores()
+        }
         appDelegate.parseRemote.automaticallySynchronizes = true
         return
+    }
+
+    @MainActor
+    static func synchronizeStoreIfRemoteEnabled() {
+        guard isSyncingWithRemote,
+              let store = AppDelegateKey.defaultValue?.store else {
+            return
+        }
+
+        store.synchronize { error in
+            let errorString = error?.localizedDescription ?? "Successful sync with remote!"
+            Logger.utility.info("\(errorString)")
+        }
+    }
+
+    @MainActor
+    private static func synchronizeStoreIfRemoteEnabledAndWait() async -> Bool {
+        guard isSyncingWithRemote,
+              let store = AppDelegateKey.defaultValue?.store else {
+            return true
+        }
+
+        return await withCheckedContinuation { continuation in
+            store.synchronize { error in
+                let errorString = error?.localizedDescription ?? "Successful sync with remote!"
+                Logger.utility.info("\(errorString)")
+                continuation.resume(returning: error == nil)
+            }
+        }
+    }
+
+    @MainActor
+    static func synchronizeStoreIfPossible() {
+        synchronizeStoreIfRemoteEnabled()
+    }
+
+    @MainActor
+    static func seedHypertensionDataInCurrentStores(
+        currentDate: Date = Date()
+    ) async throws {
+        guard let appDelegate = AppDelegateKey.defaultValue,
+              let store = appDelegate.store,
+              store.name != Constants.noCareStoreName else {
+            return
+        }
+
+        let startDate = defaultSeedStartDate(from: currentDate)
+        UserDefaults.standard.set(false, forKey: Constants.onboardingCompletedKey)
+        try await store.populateDefaultCarePlansTasksContacts(startDate: startDate)
+        #if os(iOS) || os(visionOS)
+        guard let healthKitStore = appDelegate.healthKitStore else {
+            return
+        }
+        try await healthKitStore.populateDefaultHealthKitTasks(startDate: startDate)
+        #endif
+        if startDate < currentDate {
+            try await store.populateSampleOutcomes(startDate: startDate)
+        }
     }
 
     static func updateInstallationWithDeviceToken(_ deviceToken: Data? = nil) async {
@@ -207,13 +300,108 @@ class Utility {
 		PCKUtility.removeCache()
 	}
 
+    @MainActor
+    class func checkIfOnboardingIsComplete() async -> Bool {
+        var query = OCKOutcomeQuery()
+        query.taskIDs = TaskID.onboardingIDs
+
+        guard let store = AppDelegateKey.defaultValue?.store else {
+            Logger.utility.error("CareKit store could not be unwrapped")
+            return false
+        }
+
+        do {
+            let outcomes = try await store.fetchAnyOutcomes(query: query)
+            return !outcomes.isEmpty
+        } catch {
+            Logger.utility.error("Could not fetch onboarding outcomes: \(error)")
+            return false
+        }
+    }
+
+    @MainActor
+    static func migrateHypertensionTasksIfNeeded() async {
+        guard let appDelegate = AppDelegateKey.defaultValue,
+              let store = appDelegate.store,
+              store.name != Constants.noCareStoreName else {
+            return
+        }
+
+        do {
+            let didSync = await synchronizeStoreIfRemoteEnabledAndWait()
+            // 我这里保留老师项目的 populate 方式；弱网时只加一个保护：
+            // 老用户如果同步失败且本地完全没有 CareKit 数据，先不 seed，避免离线重装造出第二套默认任务。
+            if isSyncingWithRemote,
+               !didSync,
+               !(try await localStoreHasSeedableData(store)) {
+                Logger.utility.info("Skipping seed because remote sync failed and local store is empty.")
+                return
+            }
+
+            let onboardingWasComplete = await checkIfOnboardingIsComplete()
+            let seedStartDate = defaultSeedStartDate()
+
+            try await store.populateDefaultCarePlansTasksContacts(
+                startDate: seedStartDate,
+                preserveHistoricalWindow: true
+            )
+            #if os(iOS) || os(visionOS)
+            guard let healthKitStore = appDelegate.healthKitStore else {
+                return
+            }
+            try await healthKitStore.populateDefaultHealthKitTasks(startDate: seedStartDate)
+            #endif
+
+            if onboardingWasComplete {
+                try await markCurrentOnboardingCompleteIfNeeded(in: store)
+                UserDefaults.standard.set(true, forKey: Constants.onboardingCompletedKey)
+            }
+
+            NotificationCenter.default.post(
+                .init(name: Notification.Name(rawValue: Constants.shouldRefreshView))
+            )
+            _ = await synchronizeStoreIfRemoteEnabledAndWait()
+        } catch {
+            Logger.utility.error("Could not migrate hypertension tasks: \(error)")
+        }
+    }
+
+    @MainActor
+    private static func localStoreHasSeedableData(_ store: OCKStore) async throws -> Bool {
+        var query = OCKTaskQuery()
+        query.excludesTasksWithNoEvents = false
+        let tasks = try await store.fetchAnyTasks(query: query)
+        return !tasks.isEmpty
+    }
+
+    @MainActor
+    private static func markCurrentOnboardingCompleteIfNeeded(
+        in store: OCKStore
+    ) async throws {
+        var query = OCKEventQuery(for: Date())
+        query.taskIDs = TaskID.onboardingIDs
+
+        let events = try await store.fetchEvents(query: query)
+        guard let event = events.first, event.outcome == nil else {
+            return
+        }
+
+        let outcome = OCKOutcome(
+            taskUUID: event.task.uuid,
+            taskOccurrenceIndex: event.scheduleEvent.occurrence,
+            values: [OCKOutcomeValue(Date())]
+        )
+        _ = try await store.addOutcomes([outcome])
+    }
+
     #if os(iOS) || os(visionOS)
 	@MainActor
 	static func requestHealthKitPermissions() {
+		UserDefaults.standard.set(true, forKey: Constants.healthPermissionsRequestedKey)
 		AppDelegateKey.defaultValue?.healthKitStore.requestHealthKitPermissionsForAllTasksInStore { error in
-            guard let error = error else {
-                DispatchQueue.main.async {
-                    // swiftlint:disable:next line_length
+	            guard let error = error else {
+	                DispatchQueue.main.async {
+	                    // swiftlint:disable:next line_length
                     NotificationCenter.default.post(.init(name: Notification.Name(rawValue: Constants.finishedAskingForPermission)))
                 }
                 return
@@ -223,3 +411,4 @@ class Utility {
     }
     #endif
 }
+// swiftlint:enable type_body_length
